@@ -2,9 +2,8 @@
 
 **Emunix** — an immutable, Arch-based Linux distribution for x86_64 handhelds (then desktops),
 booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, persistent
-`/storage` for ROMs/bios/saves/states. See `docs/design.md`.
+`/storage` for ROMs/bios/saves/states. See `INSTALL.md` for flashing and build instructions.
 
-Status: early scaffolding (M0). Not bootable yet.
 
 ## Layout
 
