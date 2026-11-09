@@ -4,7 +4,6 @@ linux
 linux-firmware
 mkinitcpio
 systemd
-systemd-boot
 btrfs-progs
 e2fsprogs
 dosfstools
@@ -24,5 +23,4 @@ mangohud
 gamescope
 sudo
 polkit
-emulationstation-de
 retroarch

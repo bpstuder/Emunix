@@ -25,7 +25,7 @@ mkdir -p "$MNT"
 $SUDO mount -o loop "$ROOTFS_IMG" "$MNT"
 trap '$SUDO umount "$MNT" 2>/dev/null || true' EXIT
 
-PKGS=$(cat profiles/base.txt profiles/handheld-common.txt | grep -v '^#' | tr '\n' ' ')
+PKGS=$(cat profiles/base.txt profiles/handheld-common.txt | sed 's/#.*//' | grep -v '^[[:space:]]*$' | tr '\n' ' ')
 $SUDO pacstrap -c "$MNT" $PKGS
 
 # 3. copy configs
