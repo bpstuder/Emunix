@@ -3,14 +3,15 @@
 # Checks a remote version file; if newer, downloads rootfs.img into inactive slot.
 set -euo pipefail
 
-ACTIVE=$(cat /run/emunix/active_slot 2>/dev/null || echo a)
-if [ "$ACTIVE" = "a" ]; then INACTIVE=b; else INACTIVE=a; fi
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-update.sh
+. "$(dirname "$0")/lib-update.sh"
 
 REPO_URL="${EMUNIX_REPO_URL:-https://example.invalid/emunix}"
 REMOTE_VER=$(curl -fsSL "$REPO_URL/version" 2>/dev/null || echo "")
 LOCAL_VER=$(cat /etc/emunix-version 2>/dev/null || echo "")
 
-if [ -z "$REMOTE_VER" ] || [ "$REMOTE_VER" = "$LOCAL_VER" ]; then
+if ! needs_update "$LOCAL_VER" "$REMOTE_VER"; then
   echo "No update available ($LOCAL_VER)."
   exit 0
 fi

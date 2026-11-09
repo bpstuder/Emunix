@@ -9,10 +9,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Lint and unit-test
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
+            pacman -Sy --noconfirm shellcheck >/dev/null &&
+            shellcheck -x build/*.sh tests/*.sh &&
+            bash -n build/*.sh tests/*.sh &&
+            bash tests/test-os-updater.sh"
       - name: Set up Arch (container)
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Sy --noconfirm arch-install-scripts e2fsprogs squashfs-tools && bash build/build-image.sh"
+      - name: Verify image
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm e2fsprogs >/dev/null && bash build/verify-image.sh out/rootfs.img"
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
