@@ -1,0 +1,20 @@
+name: build
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Arch (container)
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm arch-install-scripts e2fsprogs squashfs-tools && ./build/build-image.sh"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: emunix-image
+          path: out/

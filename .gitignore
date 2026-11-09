@@ -1,0 +1,10 @@
+# .gitignore for Emunix
+out/
+*.img
+*.img.zst
+*.squashfs
+*.tar.zst
+work/
+mnt/
+*.log
+.DS_Store
