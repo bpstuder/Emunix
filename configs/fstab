@@ -1,0 +1,7 @@
+# Emunix fstab template
+# /dev/disk/by-partlabel/esp        /boot   vfat   defaults,noatime   0 2
+# /dev/disk/by-partlabel/rootfs_a  /       ext4   ro                 0 1
+# /dev/disk/by-partlabel/var       /var    btrfs  defaults,noatime   0 2
+# /dev/disk/by-partlabel/home      /home   btrfs  defaults,noatime   0 2
+# /dev/disk/by-partlabel/home      /storage btrfs defaults,noatime,subvol=storage 0 2
+tmpfs /tmp tmpfs defaults,nosuid,nodev 0 0
