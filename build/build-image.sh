@@ -22,7 +22,7 @@ mkdir -p "$MNT"
 sudo mount -o loop "$ROOTFS_IMG" "$MNT"
 trap 'sudo umount "$MNT" 2>/dev/null || true' EXIT
 
-PKGS=$(grep -v '^#' profiles/packages-base.txt | tr '\n' ' ')
+PKGS=$(cat profiles/base.txt profiles/handheld-common.txt | grep -v '^#' | tr '\n' ' ')
 sudo pacstrap -c "$MNT" $PKGS
 
 # 3. copy configs

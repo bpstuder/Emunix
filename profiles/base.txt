@@ -1,4 +1,4 @@
-# Base package set for Emunix rootfs (M0)
+# Base package set (all targets)
 base
 linux
 linux-firmware
@@ -26,7 +26,3 @@ sudo
 polkit
 emulationstation-de
 retroarch
-# handheld
-asusctl
-rog-control-center
-power-profiles-daemon

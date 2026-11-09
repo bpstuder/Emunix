@@ -12,7 +12,7 @@ jobs:
       - name: Set up Arch (container)
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
-            bash -c "pacman -Sy --noconfirm arch-install-scripts e2fsprogs squashfs-tools && ./build/build-image.sh"
+            bash -c "pacman -Sy --noconfirm arch-install-scripts e2fsprogs squashfs-tools && bash build/build-image.sh"
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:

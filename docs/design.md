@@ -1,11 +1,3 @@
----
-title: "Emunix — Immutable Arch-based Emulation OS"
-date: 2026-11-08
-tags: [project, emulation, arch, immutable]
-source: dev-bot
-type: project
-project: Emunix
----
 
 # Emunix — Immutable Arch-based Emulation OS (x86_64)
 

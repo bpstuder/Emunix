@@ -1,0 +1,4 @@
+# Handheld-only packages (power, controls)
+asusctl
+rog-control-center
+power-profiles-daemon
