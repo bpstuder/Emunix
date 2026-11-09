@@ -30,7 +30,6 @@ $SUDO pacstrap -c "$MNT" $PKGS
 
 # 3. copy configs
 $SUDO cp -a configs/fstab "$MNT/etc/fstab" 2>/dev/null || true
-$SUDO cp -a configs/pacman.conf "$MNT/etc/pacman.conf" 2>/dev/null || true
 
 echo "Built $ROOTFS_IMG"
 echo "Next: build boot.tar.zst (kernel+initramfs) from $MNT/boot"

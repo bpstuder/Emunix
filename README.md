@@ -8,15 +8,13 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 ## Layout
 
 - `build/` — image assembly scripts (pacstrap + arch-chroot)
-- `packages/` — PKGBUILDs for handheld tools, updater, ES-DE config
-- `profiles/` — base package lists, partition layout
-- `configs/` — systemd units, udev rules, pacman.conf, fstab template
-- `docs/` — design doc and milestones
+- `profiles/` — base and per-device package lists
+- `configs/` — fstab template, partition layout, systemd-boot entries
 - `.github/workflows/` — CI build pipeline
 
 ## Quick start (dev)
 
-Requires an Arch host (or container) with `arch-install-scripts`, `squashfs-tools`, `qemu-img`.
+Requires an Arch host (or container) with `arch-install-scripts` and `e2fsprogs`.
 
 ```sh
 ./build/build-image.sh

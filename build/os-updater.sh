@@ -19,4 +19,3 @@ echo "Update available: $LOCAL_VER -> $REMOTE_VER"
 # TODO: download rootfs.img to inactive slot, flip boot entry, reboot
 echo "Not implemented yet (M2)."
 exit 0
-EOF

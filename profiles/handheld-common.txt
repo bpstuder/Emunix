@@ -1,4 +1,4 @@
 # Handheld-only packages (power, controls)
-asusctl  # AUR
-rog-control-center  # AUR
+asusctl
+rog-control-center
 power-profiles-daemon
