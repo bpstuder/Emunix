@@ -3,6 +3,9 @@
 # Requires: arch-install-scripts, e2fsprogs, squashfs-tools (optional)
 set -euo pipefail
 
+SUDO=""
+if command -v sudo >/dev/null 2>&1; then SUDO="sudo"; fi
+
 ARCH_SNAPSHOT="${ARCH_SNAPSHOT:-latest}"
 WORK="${WORK:-$(pwd)/work}"
 OUT="${OUT:-$(pwd)/out}"
@@ -19,15 +22,15 @@ mkfs.ext4 -L emunix-root "$ROOTFS_IMG"
 # 2. mount + pacstrap
 MNT="$WORK/mnt"
 mkdir -p "$MNT"
-sudo mount -o loop "$ROOTFS_IMG" "$MNT"
-trap 'sudo umount "$MNT" 2>/dev/null || true' EXIT
+$SUDO mount -o loop "$ROOTFS_IMG" "$MNT"
+trap '$SUDO umount "$MNT" 2>/dev/null || true' EXIT
 
 PKGS=$(cat profiles/base.txt profiles/handheld-common.txt | grep -v '^#' | tr '\n' ' ')
-sudo pacstrap -c "$MNT" $PKGS
+$SUDO pacstrap -c "$MNT" $PKGS
 
 # 3. copy configs
-sudo cp -a configs/fstab "$MNT/etc/fstab" 2>/dev/null || true
-sudo cp -a configs/pacman.conf "$MNT/etc/pacman.conf" 2>/dev/null || true
+$SUDO cp -a configs/fstab "$MNT/etc/fstab" 2>/dev/null || true
+$SUDO cp -a configs/pacman.conf "$MNT/etc/pacman.conf" 2>/dev/null || true
 
 echo "Built $ROOTFS_IMG"
 echo "Next: build boot.tar.zst (kernel+initramfs) from $MNT/boot"
