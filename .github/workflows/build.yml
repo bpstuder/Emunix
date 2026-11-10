@@ -16,16 +16,24 @@ jobs:
             shellcheck -x build/*.sh tests/*.sh &&
             bash -n build/*.sh tests/*.sh &&
             bash tests/test-os-updater.sh"
-      - name: Set up Arch (container)
+      - name: Build image
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
-            bash -c "pacman -Sy --noconfirm arch-install-scripts e2fsprogs squashfs-tools && bash build/build-image.sh"
+            bash -c "pacman -Sy --noconfirm --needed gptfdisk dosfstools btrfs-progs e2fsprogs arch-install-scripts &&
+                     bash build/build-image.sh"
       - name: Verify image
         run: |
-          docker run --rm -v "$PWD:/work" -w /work archlinux:latest \
-            bash -c "pacman -Sy --noconfirm e2fsprogs >/dev/null && bash build/verify-image.sh out/rootfs.img"
-      - name: Upload artifact
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm --needed gptfdisk e2fsprogs >/dev/null &&
+                     bash build/verify-image.sh out/emunix-*-x86_64.img"
+      - name: Boot image under QEMU
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm --needed qemu-system-x86 edk2-ovmf expect >/dev/null &&
+                     bash build/boot-test.sh out/emunix-*-x86_64.img evidence/m0-boot.log"
+      - name: Upload checksum
+        # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7
         with:
           name: emunix-image
-          path: out/
+          path: out/*.sha256
