@@ -37,7 +37,7 @@ jobs:
       - name: Session test (ES-DE on a virtual GPU)
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
-            bash -c "pacman -Sy --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
                      bash build/session-test.sh out/emunix-*-x86_64.img evidence"
       - name: Upload session evidence
         if: always()
