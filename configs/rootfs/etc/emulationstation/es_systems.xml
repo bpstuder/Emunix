@@ -1,0 +1,147 @@
+<?xml version="1.0"?>
+<!-- Emunix systems seed. ES-DE 3.x reads a custom file from ~/ES-DE/custom_systems/es_systems.xml
+     which complements the bundled definitions: only the systems below are listed, and each one
+     overrides the bundled entry of the same name.
+
+     The session script copies /etc/emulationstation/es_systems.xml there on first run, so later
+     user edits survive image updates. Commands use absolute emulator and core paths instead of
+     ES-DE's %EMULATOR_*/%CORE_* find rules, so a system only ever launches an emulator this image
+     ships. A system appears once its %ROMPATH% directory exists; the ROM tree is firstboot's
+     (card 05). -->
+<systemList>
+    <system>
+        <name>nes</name>
+        <fullname>Nintendo Entertainment System</fullname>
+        <path>%ROMPATH%/nes</path>
+        <extension>.nes .NES .unf .UNF .unif .UNIF .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/nestopia_libretro.so %ROM%</command>
+        <platform>nes</platform>
+        <theme>nes</theme>
+    </system>
+    <system>
+        <name>snes</name>
+        <fullname>Super Nintendo</fullname>
+        <path>%ROMPATH%/snes</path>
+        <extension>.smc .SMC .sfc .SFC .swc .SWC .fig .FIG .bs .BS .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/bsnes_libretro.so %ROM%</command>
+        <platform>snes</platform>
+        <theme>snes</theme>
+    </system>
+    <system>
+        <name>gb</name>
+        <fullname>Nintendo Game Boy</fullname>
+        <path>%ROMPATH%/gb</path>
+        <extension>.gb .GB .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/gambatte_libretro.so %ROM%</command>
+        <platform>gb</platform>
+        <theme>gb</theme>
+    </system>
+    <system>
+        <name>gbc</name>
+        <fullname>Nintendo Game Boy Color</fullname>
+        <path>%ROMPATH%/gbc</path>
+        <extension>.gbc .GBC .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/gambatte_libretro.so %ROM%</command>
+        <platform>gbc</platform>
+        <theme>gbc</theme>
+    </system>
+    <system>
+        <name>gba</name>
+        <fullname>Nintendo Game Boy Advance</fullname>
+        <path>%ROMPATH%/gba</path>
+        <extension>.gba .GBA .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/mgba_libretro.so %ROM%</command>
+        <platform>gba</platform>
+        <theme>gba</theme>
+    </system>
+    <system>
+        <name>megadrive</name>
+        <fullname>Sega Mega Drive/Genesis</fullname>
+        <path>%ROMPATH%/megadrive</path>
+        <extension>.bin .BIN .gen .GEN .md .MD .smd .SMD .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/genesis_plus_gx_libretro.so %ROM%</command>
+        <platform>megadrive</platform>
+        <theme>megadrive</theme>
+    </system>
+    <system>
+        <name>gamegear</name>
+        <fullname>Sega Game Gear</fullname>
+        <path>%ROMPATH%/gamegear</path>
+        <extension>.gg .GG .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/genesis_plus_gx_libretro.so %ROM%</command>
+        <platform>gamegear</platform>
+        <theme>gamegear</theme>
+    </system>
+    <system>
+        <name>pcengine</name>
+        <fullname>PC Engine/TurboGrafx-16</fullname>
+        <path>%ROMPATH%/pcengine</path>
+        <extension>.pce .PCE .sgx .SGX .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/mednafen_pce_fast_libretro.so %ROM%</command>
+        <platform>pcengine</platform>
+        <theme>pcengine</theme>
+    </system>
+    <system>
+        <name>psx</name>
+        <fullname>Sony PlayStation</fullname>
+        <path>%ROMPATH%/psx</path>
+        <extension>.bin .BIN .cue .CUE .chd .CHD .m3u .M3U .pbp .PBP .iso .ISO .img .IMG .ecm .ECM .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/mednafen_psx_libretro.so %ROM%</command>
+        <platform>psx</platform>
+        <theme>psx</theme>
+    </system>
+    <system>
+        <name>n64</name>
+        <fullname>Nintendo 64</fullname>
+        <path>%ROMPATH%/n64</path>
+        <extension>.z64 .Z64 .n64 .N64 .v64 .V64 .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/mupen64plus_next_libretro.so %ROM%</command>
+        <platform>n64</platform>
+        <theme>n64</theme>
+    </system>
+    <system>
+        <name>nds</name>
+        <fullname>Nintendo DS</fullname>
+        <path>%ROMPATH%/nds</path>
+        <extension>.nds .NDS .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/melonds_libretro.so %ROM%</command>
+        <platform>nds</platform>
+        <theme>nds</theme>
+    </system>
+    <system>
+        <name>dreamcast</name>
+        <fullname>Sega Dreamcast</fullname>
+        <path>%ROMPATH%/dreamcast</path>
+        <extension>.cdi .CDI .chd .CHD .gdi .GDI .cue .CUE .m3u .M3U .zip .ZIP .7z .7Z</extension>
+        <command>/usr/bin/retroarch -L /usr/lib/libretro/flycast_libretro.so %ROM%</command>
+        <platform>dreamcast</platform>
+        <theme>dreamcast</theme>
+    </system>
+    <system>
+        <name>gc</name>
+        <fullname>Nintendo GameCube</fullname>
+        <path>%ROMPATH%/gc</path>
+        <extension>.iso .ISO .rvz .RVZ .gcm .GCM .gcz .GCZ .wia .WIA .dol .DOL .elf .ELF</extension>
+        <command>/usr/bin/dolphin-emu -b -e %ROM%</command>
+        <platform>gc</platform>
+        <theme>gc</theme>
+    </system>
+    <system>
+        <name>wii</name>
+        <fullname>Nintendo Wii</fullname>
+        <path>%ROMPATH%/wii</path>
+        <extension>.iso .ISO .rvz .RVZ .wbfs .WBFS .gcm .GCM .gcz .GCZ .wia .WIA</extension>
+        <command>/usr/bin/dolphin-emu -b -e %ROM%</command>
+        <platform>wii</platform>
+        <theme>wii</theme>
+    </system>
+    <system>
+        <name>psp</name>
+        <fullname>Sony PSP</fullname>
+        <path>%ROMPATH%/psp</path>
+        <extension>.iso .ISO .cso .CSO .chd .CHD .pbp .PBP</extension>
+        <command>/usr/bin/PPSSPPSDL %ROM%</command>
+        <platform>psp</platform>
+        <theme>psp</theme>
+    </system>
+</systemList>

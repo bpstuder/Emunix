@@ -1,0 +1,9 @@
+[Unit]
+Description=Emunix games session (EmulationStation-DE)
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/emunix-session
+# No restart: a loop would flash between the frontend and a black screen. The login shell on tty1
+# prints the journal hint instead.
+Restart=no

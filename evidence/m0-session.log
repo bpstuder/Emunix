@@ -1,0 +1,74 @@
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.wnjnrjk5Oy/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.wnjnrjk5Oy/OVMF_VARS.fd -drive file=/tmp/tmp.wnjnrjk5Oy/boot.img,format=raw,if=virtio -snapshot -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62592/524288 files, 704666/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=1a51fdf755114691ac29a6795c8ff794;user=root;hostname=emunix;machineid=6035d793e6034939946b62a397fffea0;bootid=da973ea72a154a8b965410713d11e8a0;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=ed2d427706ea46e78a30473fd5db8066;user=root;hostname=emunix;machineid=6035d793e6034939946b62a397fffea0;bootid=da973ea72a154a8b965410713d11e8a0;pid=435;pidfdid=147;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=6e95fd25c75d446080d429a88e3992a3;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=1d17cbae069746a5bcfcab35098eddda;user=root;hostname=emunix;machineid=6035d793e6034939946b62a397fffea0;bootid=da973ea72a154a8b965410713d11e8a0;pid=435;pidfdid=147;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ export XDG_RUNTIME_DIR=/run/user/1000; for i in $(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo EMUNIX-SESSION-STATE; systemctl --user is-active emunix-session; pgrep -a es-de; journalctl --user -b -u emunix-session --no-pager | tail -30; echo EMUNIX-SESSION-STATE-END
+[?2004l]3008;start=22dc06fb-0fc0-443a-b3bc-a0fdba04c89e;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\EMUNIX-SESSION-STATE
+active
+481 es-de
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  console: gamescope version 3.17.0 (gcc 16.2.1)
+Nov 10 19:07:33 emunix emunix-session[478]: No CAP_SYS_NICE, falling back to regular-priority compute and threads.
+Nov 10 19:07:33 emunix emunix-session[478]: Performance will be affected.
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/usr/share/gamescope/scripts'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/usr/share/gamescope/scripts/00-gamescope'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/usr/share/gamescope/scripts/00-gamescope/common'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/common/inspect.lua' (id: 0)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/common/modegen.lua' (id: 1)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/common/util.lua' (id: 2)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/usr/share/gamescope/scripts/00-gamescope/displays'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/asus.rogally.lcd.lua' (id: 3)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/asus.rogallyx20.oled.lua' (id: 4)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/deckhd.steamdeck.deckhd-lcd.lua' (id: 5)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/gpd.win4.lcd.lua' (id: 6)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/lenovo.legiongo.lcd.lua' (id: 7)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/lenovo.legiongo2.oled.lua' (id: 8)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/lenovo.legiongos.lcd.lua' (id: 9)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/onexplayer.f1.oled.lua' (id: 10)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.lcd.lua' (id: 11)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/valve.steamdeck.oled.lua' (id: 12)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Running script file '/usr/share/gamescope/scripts/00-gamescope/displays/zotac.zone.oled.lua' (id: 13)
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/etc/gamescope/scripts'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Warn]  scriptmgr: Directory '/etc/gamescope/scripts' does not exist
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Info]  scriptmgr: Loading scripts from: '/home/retrogamer/.config/gamescope/scripts'
+Nov 10 19:07:33 emunix emunix-session[478]: [gamescope] [Warn]  scriptmgr: Directory '/home/retrogamer/.config/gamescope/scripts' does not exist
+Nov 10 19:07:34 emunix emunix-session[478]: [gamescope] [Error] vulkan: failed to find physical device
+Nov 10 19:07:34 emunix emunix-session[478]: Failed to initialize Vulkan
+Nov 10 19:07:34 emunix emunix-session[478]: Failed to create backend.
+Nov 10 19:07:34 emunix emunix-session[474]: emunix-session: gamescope exited 1, starting es-de directly
+Nov 10 19:07:35 emunix emunix-session[481]: Creating logs directory "/home/retrogamer/ES-DE/logs"...
+EMUNIX-SESSION-STATE-END
+]3008;end=22dc06fb-0fc0-443a-b3bc-a0fdba04c89e;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sleep 12; echo EMUNIX-CORE-STATE; echo '--- frontend log:'; tail -8 /home/retrogamer/ES-DE/logs/es_log.txt; echo EMUNIX-CORE-STATE-END
+[?2004l]3008;start=75273143-807e-4cf8-991e-96b927dda6f0;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\EMUNIX-CORE-STATE
+--- frontend log:
+Nov 10 19:07:36 Info:   Total game count: 1
+Nov 10 19:07:36 Info:   Finished loading theme "linear-es-de"
+Nov 10 19:07:36 Info:   Aspect ratio automatically set to exact match "16:10"
+Nov 10 19:07:36 Info:   Theme language set to "en_US"
+Nov 10 19:07:36 Info:   Application startup time: 1367 ms
+Nov 10 19:07:55 Info:   Launching game "placeholder" from system "Nintendo Entertainment System (nes)"...
+Nov 10 19:07:55 Info:   Expanded emulator launch command:
+Nov 10 19:07:55 Info:   /usr/bin/retroarch -L /usr/lib/libretro/nestopia_libretro.so /storage/roms/nes/placeholder.nes
+EMUNIX-CORE-STATE-END
+]3008;end=75273143-807e-4cf8-991e-96b927dda6f0;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ systemctl --user stop emunix-session; sleep 3; mkdir -p /home/retrogamer/ES-DE/settings /home/retrogamer/ES-DE/custom_systems; cp /etc/emulationstation/es_settings.xml /home/retrogamer/ES-DE/settings/; printf '%s' '<systemList><system><name>nes</name><fullname>Nintendo Entertainment System</fullname><path>%ROMPATH%/nes</path><extension>.nes .NES</extension><command>/usr/bin/retroarch --verbose --log-file=/tmp/core.log -L /usr/lib/libretro/nestopia_libretro.so %ROM%</command><platform>nes</platform><theme>nes</theme></system></systemList>' > /home/retrogamer/ES-DE/custom_systems/es_systems.xml; echo FIXTURE-READY
+[?2004l]3008;start=12b39d04-4707-41a3-81c8-acb95658f2dc;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\FIXTURE-READY
+]3008;end=12b39d04-4707-41a3-81c8-acb95658f2dc;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ systemctl --user restart emunix-session
+[?2004l]3008;start=46b79a0a-16fa-452e-92b7-40dffc52b7b3;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\]3008;end=46b79a0a-16fa-452e-92b7-40dffc52b7b3;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ for i in $(seq 45); do pgrep -x es-de >/dev/null && break; sleep 2; done; sleep 15; echo EMUNIX-FIXTURE-STATE-END
+[?2004l]3008;start=7dc61fea-3c18-4c92-a68c-a9ad92651081;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\EMUNIX-FIXTURE-STATE-END
+]3008;end=7dc61fea-3c18-4c92-a68c-a9ad92651081;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ for i in $(seq 45); do grep -q 'Loading dynamic libretro core' /tmp/core.log 2>/dev/null && break; sleep 2; done; sleep 5; echo EMUNIX-CORE-LOAD; grep -E 'Loading dynamic libretro core|Failed to load content|Libretro core requires content' /tmp/core.log; echo EMUNIX-CORE-LOAD-END
+[?2004l]3008;start=ce02ca49-3785-4131-a7eb-d4b0a28342e2;type=command;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\EMUNIX-CORE-LOAD
+[INFO] [Core] Loading dynamic libretro core from: "/usr/lib/libretro/nestopia_libretro.so".
+[ERROR] [Content] Failed to load content.
+EMUNIX-CORE-LOAD-END
+]3008;end=ce02ca49-3785-4131-a7eb-d4b0a28342e2;exit=success\]3008;start=0e44f346-1c14-409d-867e-bb107006144e;type=shell;machineid=6035d793e6034939946b62a397fffea0;user=retrogamer;hostname=emunix;bootid=da973ea7-2a15-4a8b-9654-10713d11e8a0;pid=485;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ 

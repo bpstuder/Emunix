@@ -1,0 +1,25 @@
+#!/bin/bash
+# The Emunix session: ES-DE on the current VT, wrapped in gamescope. Started on tty1 by
+# ~/.bash_profile through the emunix-session user unit; its output goes to the user journal.
+set -uo pipefail
+
+# ES-DE 3.x keeps its configuration in ~/ES-DE (settings/, custom_systems/). The installed seed is
+# read-only, so it is copied once: later user edits then survive image updates.
+if [ ! -d "$HOME/ES-DE" ]; then
+  mkdir -p "$HOME/ES-DE/settings" "$HOME/ES-DE/custom_systems"
+  cp /etc/emulationstation/es_settings.xml "$HOME/ES-DE/settings/"
+  cp /etc/emulationstation/es_systems.xml "$HOME/ES-DE/custom_systems/"
+fi
+
+status=0
+printf 'emunix-session: starting es-de under gamescope\n'
+gamescope -f -- es-de || status=$?
+if [ "$status" -ne 0 ]; then
+  # gamescope needs a compositor-capable GPU; ES-DE's own KMSDRM output only needs KMS + GL.
+  # shortcut: one retry without gamescope, no loop; revisit if a device needs gamescope only.
+  printf 'emunix-session: gamescope exited %s, starting es-de directly\n' "$status"
+  status=0
+  es-de || status=$?
+fi
+printf 'emunix-session: exiting %s\n' "$status"
+exit "$status"

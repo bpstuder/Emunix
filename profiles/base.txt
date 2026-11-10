@@ -23,4 +23,23 @@ mangohud
 gamescope
 sudo
 polkit
+
+# Emulation: one core per system, official repos only. The frontend (emulationstation-de) is
+# AUR-only and built from profiles/aur.txt; pcsx2 and standalone flycast are AUR-only too and
+# deferred there to the [emunix] repo (card 13). Cores are one per system on purpose; adding a
+# second is a config choice, not a default.
 retroarch
+libretro-core-info
+libretro-nestopia          # NES
+libretro-bsnes             # SNES
+libretro-gambatte          # GB/GBC
+libretro-mgba              # GBA
+libretro-genesis-plus-gx   # Mega Drive/Genesis, Game Gear
+libretro-beetle-pce-fast   # PC Engine/TurboGrafx-16
+libretro-beetle-psx        # PlayStation
+libretro-mupen64plus-next  # N64
+libretro-melonds           # Nintendo DS
+libretro-flycast           # Dreamcast
+dolphin-emu                # GameCube/Wii
+ppsspp                     # PSP
+mupen64plus                # N64 standalone (ES-DE alternative to the core)

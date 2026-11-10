@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<!-- Emunix default ES-DE settings. Read-only seed: build/build-image.sh installs it to
+     /etc/emulationstation and the session copies it to ~/ES-DE/settings/ on first run, so later
+     user edits survive image updates. Keys not listed keep their ES-DE defaults.
+
+     Flat, no <config> wrapper: ES-DE 3.5 reads settings as children of the document root
+     (Settings::loadFile), and a wrapper element makes every setting silently invisible. -->
+<string name="ROMDirectory" value="/storage/roms" />

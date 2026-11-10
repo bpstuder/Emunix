@@ -13,9 +13,12 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
             pacman -Sy --noconfirm shellcheck >/dev/null &&
-            shellcheck -x build/*.sh tests/*.sh &&
-            bash -n build/*.sh tests/*.sh &&
-            bash tests/test-os-updater.sh"
+            shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
+              configs/rootfs/etc/skel/.bash_profile &&
+            bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
+              configs/rootfs/etc/skel/.bash_profile &&
+            bash tests/test-os-updater.sh &&
+            bash tests/test-session.sh"
       - name: Build image
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
@@ -31,6 +34,19 @@ jobs:
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Sy --noconfirm --needed qemu-system-x86 edk2-ovmf expect >/dev/null &&
                      bash build/boot-test.sh out/emunix-*-x86_64.img evidence/m0-boot.log"
+      - name: Session test (ES-DE on a virtual GPU)
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
+                     bash build/session-test.sh out/emunix-*-x86_64.img evidence"
+      - name: Upload session evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: session-evidence
+          path: |
+            evidence/m0-session.log
+            evidence/m0-session-*.png
       - name: Upload checksum
         # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7

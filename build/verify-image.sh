@@ -41,13 +41,28 @@ for slot in a b; do
 done
 umount "$MNT"
 
-# 3. rootfs_a: the generated fstab, the user, machine-id, the frontend.
+# 3. rootfs_a: the generated fstab, the user, machine-id, the frontend, the session.
 mount -o ro "${LOOP}p2" "$MNT"
 for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroarch \
-  etc/sudoers.d/10-wheel etc/systemd/system/multi-user.target.wants/NetworkManager.service; do
+  etc/pacman.conf etc/sudoers.d/10-wheel \
+  etc/systemd/system/multi-user.target.wants/NetworkManager.service \
+  usr/bin/es-de usr/lib/libretro/nestopia_libretro.so usr/bin/gamescope \
+  usr/local/bin/emunix-session etc/systemd/user/emunix-session.service \
+  etc/systemd/system/getty@tty1.service.d/autologin.conf \
+  etc/systemd/system/getty.target.wants/getty@tty1.service \
+  etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do
   # -L too: the enabled unit is a symlink to an absolute path in the image, not in this host.
   [ -e "$MNT/$f" ] || [ -L "$MNT/$f" ] || fail "/$f missing from rootfs_a"
 done
+grep -q -- '--autologin retrogamer' "$MNT/etc/systemd/system/getty@tty1.service.d/autologin.conf" ||
+  fail "tty1 autologin is not configured for retrogamer"
+grep -q 'ROMDirectory.*"/storage/roms"' "$MNT/etc/emulationstation/es_settings.xml" ||
+  fail "es_settings.xml does not point ES-DE at /storage/roms"
+# The AUR build toolchain must not survive into the image.
+for f in usr/bin/gcc usr/bin/cmake usr/bin/make build etc/sudoers.d/20-aurbuilder root/aur.txt; do
+  [ ! -e "$MNT/$f" ] || fail "/$f is build residue: the image ships a compiler"
+done
+
 grep -q '^PARTLABEL=rootfs_a / *ext4 *ro' "$MNT/etc/fstab" || fail "fstab has no read-only rootfs_a root"
 grep -q '^PARTLABEL=home .* /storage ' "$MNT/etc/fstab" || fail "fstab has no /storage subvolume"
 grep -q '^retrogamer:' "$MNT/etc/passwd" || fail "user retrogamer missing"
@@ -60,6 +75,9 @@ umount "$MNT"
 # 4. home: the user's directory and the /storage subvolume live on their own partition.
 mount -o ro "${LOOP}p5" "$MNT"
 [ -d "$MNT/retrogamer" ] || fail "/home/retrogamer missing from the home partition"
+grep -q 'emunix-session' "$MNT/retrogamer/.bash_profile" || fail "tty1 login does not start the session"
+# Asset policy: no ROMs, BIOS or saves are baked into the image.
 [ -d "$MNT/storage" ] || fail "/storage btrfs subvolume missing"
+[ -z "$(ls -A "$MNT/storage")" ] || fail "/storage is not empty: the image ships content"
 
 echo "verified $IMG: 5 labels, systemd-boot + 2 entries, kernel/initramfs, fstab + mounts, retrogamer, machine-id"

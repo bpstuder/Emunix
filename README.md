@@ -7,10 +7,12 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 
 ## Layout
 
-- `build/` — image assembly scripts (sgdisk + pacstrap + arch-chroot), boot test
-- `profiles/` — base, handheld-common and per-device package lists (`DEVICE=rog-ally`)
-- `configs/` — partition layout and udev rules
-- `evidence/` — boot transcripts from the image test
+- `build/` — image assembly (sgdisk + pacstrap + arch-chroot), AUR build, image and session boot tests
+- `profiles/` — base, handheld-common and per-device package lists (`DEVICE=rog-ally`);
+  `aur.txt` holds the AUR packages built in the chroot, pinned by commit
+- `configs/rootfs/` — files copied into the image root (ES-DE session, its units, the ES-DE seed)
+- `configs/` — partition layout
+- `evidence/` — boot transcripts and screenshots from the image tests
 - `.github/workflows/` — CI build pipeline
 
 ## Quick start (dev)
@@ -22,6 +24,7 @@ and `arch-install-scripts`.
 sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<date>-x86_64.img + .sha256
 sudo ./build/verify-image.sh out/emunix-*-x86_64.img
 sudo ./build/boot-test.sh out/emunix-*-x86_64.img  # QEMU + OVMF, login on ttyS0
+sudo ./build/session-test.sh out/emunix-*-x86_64.img  # QEMU + virtio-vga: ES-DE session, screenshots
 ```
 
 Output lands in `out/` (a 24 GiB GPT disk image, sparse on disk; override with `TOTAL_SIZE`).

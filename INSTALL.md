@@ -19,5 +19,8 @@ See `build/build-image.sh` and `.github/workflows/build.yml`. Requires an Arch h
 ## Notes
 
 - Default user: `retrogamer` (password same as username — change it).
+- Boots into EmulationStation-DE on tty1; quitting it drops to a shell with the journal hint.
+- Games are launched from `/storage/roms/<system>/`; `/etc/emulationstation` holds the read-only
+  defaults, copied to `~/ES-DE` on first login so your edits survive image updates.
 - ROMs/bios/saves/states live under `/storage`.
 - No copyrighted assets are included; supply your own.

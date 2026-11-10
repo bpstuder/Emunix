@@ -65,7 +65,7 @@ if [ -n "$DEVICE" ]; then
   [ -f "$DEVICE_PROFILE" ] || { echo "unknown DEVICE=$DEVICE (no $DEVICE_PROFILE)" >&2; exit 1; }
   PROFILES+=("$DEVICE_PROFILE")
 fi
-mapfile -t PKGS < <(sed 's/#.*//' "${PROFILES[@]}" | grep -v '^[[:space:]]*$')
+mapfile -t PKGS < <(sed 's/#.*//; s/[[:space:]]*$//' "${PROFILES[@]}" | grep -v '^[[:space:]]*$')
 
 # ARCH_SNAPSHOT pins every repo to one archive day ($repo/$arch are mirrorlist variables).
 PACARGS=()
@@ -79,6 +79,19 @@ if [ "$ARCH_SNAPSHOT" != "latest" ]; then
   PACARGS=(-C "$WORK/pacman.conf")
 fi
 pacstrap "${PACARGS[@]}" -c "$MNT" "${PKGS[@]}"
+
+# 2b. Repo-owned files: the session, its units, the ES-DE seed. The tree mirrors the image root;
+# --no-preserve=ownership because the build host's uid must not leak into the image.
+cp -a --no-preserve=ownership "$REPO/configs/rootfs/." "$MNT/"
+
+# pacstrap leaves /etc/pacman.conf out on purpose (the host's repos must not leak in silently), but
+# the image needs one: without it pacman, and the AUR build below, cannot run at all.
+cp /etc/pacman.conf "$MNT/etc/pacman.conf"
+
+# 2c. AUR list for the chroot step: comment-stripped, so the chroot only parses "<name> <commit>".
+sed 's/#.*//' "$REPO/profiles/aur.txt" | { grep -v '^[[:space:]]*$' || true; } >"$WORK/aur.txt"
+# staging dir: arch-chroot mounts a tmpfs over /tmp, which would hide a file put there.
+cp "$WORK/aur.txt" "$MNT/root/aur.txt"
 
 # 3. fstab comes from the partition labels, not from a template.
 tee "$MNT/etc/fstab" >/dev/null <<'EOF'
@@ -102,11 +115,44 @@ sed -i 's/^#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
 locale-gen >/dev/null
 
 systemd-id128 new >/etc/machine-id
-useradd -m -G wheel -s /bin/bash retrogamer
+# input: ES-DE reads controllers and the keyboard straight from /dev/input when it runs on KMSDRM
+# without a compositor, and logind only hands those devices to a session manager, not to a plain
+# user session. Single-user kiosk with autologin, so the tradeoff is intentional.
+useradd -m -G wheel,input -s /bin/bash retrogamer
 printf 'retrogamer:retrogamer\n' | chpasswd
 printf '%%wheel ALL=(ALL:ALL) ALL\n' >/etc/sudoers.d/10-wheel
 chmod 0440 /etc/sudoers.d/10-wheel
 systemctl enable NetworkManager >/dev/null
+systemctl enable getty@tty1.service >/dev/null
+
+# AUR packages (profiles/aur.txt): built here as an unprivileged user, then the toolchain that
+# built them is purged so the image ships no compiler.
+if [ -s /root/aur.txt ]; then
+  pacman -S --needed --noconfirm base-devel git >/dev/null
+  useradd -m -d /build -s /bin/bash aurbuilder
+  printf 'aurbuilder ALL=(ALL) NOPASSWD: ALL\n' >/etc/sudoers.d/20-aurbuilder
+  chmod 0440 /etc/sudoers.d/20-aurbuilder
+  while read -r name commit; do
+    [ -n "$name" ] || continue
+    [ -n "$commit" ] || { echo "profiles/aur.txt: $name has no pinned commit" >&2; exit 1; }
+    echo "AUR: building $name at $commit"
+    su - aurbuilder -c "
+      set -e
+      git clone --quiet https://aur.archlinux.org/$name.git /build/$name
+      cd /build/$name && git checkout --quiet $commit
+      makepkg --syncdeps --install --noconfirm
+    " || { echo "AUR: $name failed to build" >&2; exit 1; }
+  done </root/aur.txt
+  rm -f /etc/sudoers.d/20-aurbuilder /root/aur.txt
+  userdel -r aurbuilder
+  # No compiler in the shipped image: base-devel is the meta package that holds the toolchain, so
+  # drop it (and git), then everything nothing needs any more, i.e. the PKGBUILDs' makedepends.
+  pacman -Rns --noconfirm --nosave base-devel git >/dev/null
+  orphans=$(pacman -Qdtq || true)
+  [ -z "$orphans" ] || pacman -Rns --noconfirm $orphans >/dev/null
+fi
+[ -x /usr/bin/es-de ] ||
+  { echo "no /usr/bin/es-de: profiles/aur.txt did not build the frontend" >&2; exit 1; }
 
 # virtio_blk so the image boots under QEMU; no autodetect, the image is not the build host.
 printf 'MODULES=(virtio_blk virtio_pci)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf kms keyboard keymap consolefont block filesystems fsck)\n' >/etc/mkinitcpio.conf
