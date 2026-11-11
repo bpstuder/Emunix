@@ -1,0 +1,106 @@
+image out/emunix-2026.11.11-x86_64.img, accel kvm
+=== boot 1: write /etc on the read-only root
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.ghUchay5XZ/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.ghUchay5XZ/OVMF_VARS.fd -drive file=/tmp/tmp.ghUchay5XZ/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62602/524288 files, 704708/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=e3998efe26da4730bbe6b3807cfe9aa1;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=5ce8e3f362054eaba87b1a3965253e1f;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=446;pidfdid=12369;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=60003ad853eb43b98ad430dcbd6bf2b7;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=0ac26cdca25e415ba1d86891e99949b7;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=446;pidfdid=12369;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=ca500e16-8245-43f5-9d04-0fd2b1f5b541;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=55464946-4d39-416c-9954-8dbd4da1b090;pid=537;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=75581eaf-3397-438f-a2b8-7da31e0feced;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=55464946-4d39-416c-9954-8dbd4da1b090;pid=537;cwd=/home/retrogamer\
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+For security reasons, the password you type will not be visible.
+
+[sudo] password for retrogamer: 
+]3008;end=75581eaf-3397-438f-a2b8-7da31e0feced;exit=success\]3008;start=ca500e16-8245-43f5-9d04-0fd2b1f5b541;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=55464946-4d39-416c-9954-8dbd4da1b090;pid=537;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo emunix-overlay-test | sudo tee /etc/hostname; echo "WROTE-HOSTNAME: $(cat /etc/hostname)"; sudo nmcli connection add type wifi con-name emunix-test ssid emunix-test; echo "NM-CON-ADD-RC=$?"; sudo ls -l /etc/NetworkManager/system-connections/; echo "OVERLAY-TREE-B1: $(sudo find /var/lib/emunix/overlay -maxdepth 4 | sort | tr '\n' ' ')"; echo ETC-OVERLAY-BOOT1-END
+[?2004l]3008;start=7eafdc9d-5e7e-44c3-b5c0-68014fcbb6ec;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=55464946-4d39-416c-9954-8dbd4da1b090;pid=537;cwd=/home/retrogamer\ROOT-MOUNT: / /dev/vda2 ext4 ro,noatime
+ETC-MOUNT: /etc overlay overlay rw,relatime,lowerdir=/etc,upperdir=/var/lib/emunix/overlay/etc/a/upper,workdir=/var/lib/emunix/overlay/etc/a/work,uuid=on
+]3008;start=933be0dca91c4fd5ab0e2b2e809937b4;user=retrogamer;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=564;pidfdid=178;comm=sudo;targetuser=root;type=session\emunix-overlay-test
+]3008;end=933be0dca91c4fd5ab0e2b2e809937b4\WROTE-HOSTNAME: emunix-overlay-test
+]3008;start=1039a7a51a504c09bdbcc5cdee6d512f;user=retrogamer;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=569;pidfdid=181;comm=sudo;targetuser=root;type=session\
+Connection 'emunix-test' (00104ee0-544d-4c9c-b33a-5f70a510b3f7) successfully added.
+]3008;end=1039a7a51a504c09bdbcc5cdee6d512f\NM-CON-ADD-RC=0
+]3008;start=329b9d7adb7f4150a8f2de2e30153487;user=retrogamer;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=554649464d39416c99548dbd4da1b090;pid=577;pidfdid=184;comm=sudo;targetuser=root;type=session\total 4
+-rw------- 1 root root 196 Nov 11 14:09 emunix-test.nmconnection
+]3008;end=329b9d7adb7f4150a8f2de2e30153487\OVERLAY-TREE-B1: /var/lib/emunix/overlay /var/lib/emunix/overlay/etc /var/lib/emunix/overlay/etc/a /var/lib/emunix/overlay/etc/a/upper /var/lib/emunix/overlay/etc/a/upper/hostname /var/lib/emunix/overlay/etc/a/upper/ld.so.cache /var/lib/emunix/overlay/etc/a/upper/NetworkManager /var/lib/emunix/overlay/etc/a/upper/pacman.d /var/lib/emunix/overlay/etc/a/upper/resolv.conf /var/lib/emunix/overlay/etc/a/upper/.updated /var/lib/emunix/overlay/etc/a/work /var/lib/emunix/overlay/etc/a/work/index /var/lib/emunix/overlay/etc/a/work/work 
+ETC-OVERLAY-BOOT1-END
+]3008;end=7eafdc9d-5e7e-44c3-b5c0-68014fcbb6ec;exit=success\]3008;start=ca500e16-8245-43f5-9d04-0fd2b1f5b541;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=55464946-4d39-416c-9954-8dbd4da1b090;pid=537;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+[?2004h[?2004l
+]3008;end=0ac26cdca25e415ba1d86891e99949b7\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=5ce8e3f362054eaba87b1a3965253e1f\]3008;end=e3998efe26da4730bbe6b3807cfe9aa1\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   11.856437] reboot: Power down
+=== boot 2: reboot, nothing written since
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.ghUchay5XZ/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.ghUchay5XZ/OVMF_VARS.fd -drive file=/tmp/tmp.ghUchay5XZ/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62602/524288 files, 704708/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=04c1e0c9db2840bf8a0ba49bb02dc8e5;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=d79348f4eeb44217b7ae8bd650ec80f1;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=ada12dcff14942c29ae2d03a535c571a;user=root;hostname=emunix-overlay-test;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=d79348f4eeb44217b7ae8bd650ec80f1;pid=443;pidfdid=8354;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=c509ac6de7f345babc3c6638e74f85da;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix-overlay-test login: retrogamer
+Password: 
+]3008;start=654ba6b126024228a26a44b60e0a419d;user=root;hostname=emunix-overlay-test;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=d79348f4eeb44217b7ae8bd650ec80f1;pid=443;pidfdid=8354;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=4b98a0b9-263e-4084-bedd-80179bb6d443;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\[?2004h[retrogamer@emunix-overlay-test ~]$ sudo -v
+[?2004l]3008;start=c77a01e6-b69f-4586-bb2f-27cc705d1cc5;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\[sudo] password for retrogamer: 
+]3008;end=c77a01e6-b69f-4586-bb2f-27cc705d1cc5;exit=success\]3008;start=4b98a0b9-263e-4084-bedd-80179bb6d443;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\[?2004h[retrogamer@emunix-overlay-test ~]$ echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE: $(cat /etc/hostname)"; echo "HOSTNAME-RUNNING: $(hostnamectl hostname)"; echo "NM-PROFILES-B2: $(nmcli -g NAME connection show | tr '\n' ' ')"; systemctl show -p ActiveState -p Result emunix-etc-overlay; echo ETC-OVERLAY-BOOT2-END
+[?2004l]3008;start=e18cb610-d270-41d9-b039-a2cbb35c040e;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\ROOT-MOUNT: / /dev/vda2 ext4 ro,noatime
+ETC-MOUNT: /etc overlay overlay rw,relatime,lowerdir=/etc,upperdir=/var/lib/emunix/overlay/etc/a/upper,workdir=/var/lib/emunix/overlay/etc/a/work
+HOSTNAME-FILE: emunix-overlay-test
+HOSTNAME-RUNNING: emunix-overlay-test
+NM-PROFILES-B2: Wired connection 1 lo emunix-test 
+ActiveState=active
+Result=success
+ETC-OVERLAY-BOOT2-END
+]3008;end=e18cb610-d270-41d9-b039-a2cbb35c040e;exit=success\]3008;start=4b98a0b9-263e-4084-bedd-80179bb6d443;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\[?2004h[retrogamer@emunix-overlay-test ~]$ 
+[?2004l]3008;end=2f5833fa-ac02-4b30-a599-10d6da351df1;exit=success\]3008;start=4b98a0b9-263e-4084-bedd-80179bb6d443;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix-overlay-test;bootid=d79348f4-eeb4-4217-b7ae-8bd650ec80f1;pid=491;cwd=/home/retrogamer\[?2004h[retrogamer@emunix-overlay-test ~]$ [?2004l[?2004h[?2004l
+]3008;end=654ba6b126024228a26a44b60e0a419d\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=ada12dcff14942c29ae2d]3008;end=04c1e0c9db2840bf8a0ba49bb02dc8e5\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   10.527019] reboot: Power down
+=== slot switch: rootfs_a -> rootfs_b
+=== boot 3: the other root slot
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.ghUchay5XZ/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.ghUchay5XZ/OVMF_VARS.fd -drive file=/tmp/tmp.ghUchay5XZ/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[30m[47m[0m[30m[47m          Emunix (slot b)           [021;063H[1m[37m[40m[0m[37m[40m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_b: clean, 62602/524288 files, 704694/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=7b91399758474e44887b752e81330469;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=ce230747aceb4d0f9c35638ccf98d041;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=98e1bc655a9a43cf9fabb8317aaf69a8;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=ce230747aceb4d0f9c35638ccf98d041;pid=459;pidfdid=12373;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=2c6f6badaadc462e9a1388dd8c1e396a;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=f1e1814a5a084ff0a87684b194248e2c;user=root;hostname=emunix;machineid=c9e8ec31e1874c259168c6cbe6d03be2;bootid=ce230747aceb4d0f9c35638ccf98d041;pid=459;pidfdid=12373;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=2b24e88f-d01f-48df-aef7-3b9a6e0ebc63;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=9aeb3c3d-23e5-47fa-be01-b82bf23b68d7;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\[sudo] password for retrogamer: 
+]3008;end=9aeb3c3d-23e5-47fa-be01-b82bf23b68d7;exit=success\]3008;start=2b24e88f-d01f-48df-aef7-3b9a6e0ebc63;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE: $(cat /etc/hostname)"; echo "NM-PROFILES-B3: $(nmcli -g NAME connection show | tr '\n' ' ')"; echo "SLOT-A-ETC-HOSTNAME: $(sudo sed -n 1p /var/lib/emunix/overlay/etc/a/upper/hostname)"; echo ETC-OVERLAY-BOOT3-END
+[?2004l]3008;start=13c2718d-7123-42c5-ad00-8ce9e4bdd3ae;type=command;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\ROOT-MOUNT: / /dev/vda3 ext4 ro,noatime
+ETC-MOUNT: /etc overlay overlay rw,relatime,lowerdir=/etc,upperdir=/var/lib/emunix/overlay/etc/b/upper,workdir=/var/lib/emunix/overlay/etc/b/work,uuid=on
+HOSTNAME-FILE: emunix
+NM-PROFILES-B3: Wired connection 1 lo 
+SLOT-A-ETC-HOSTNAME: emunix-overlay-test
+ETC-OVERLAY-BOOT3-END
+]3008;end=13c2718d-7123-42c5-ad00-8ce9e4bdd3ae;exit=success\]3008;start=2b24e88f-d01f-48df-aef7-3b9a6e0ebc63;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ 
+[?2004l]3008;end=3e08f989-7c66-417d-9e13-7f1feda39e7a;exit=success\]3008;start=2b24e88f-d01f-48df-aef7-3b9a6e0ebc63;type=shell;machineid=c9e8ec31e1874c259168c6cbe6d03be2;user=retrogamer;hostname=emunix;bootid=ce230747-aceb-4d0f-9c35-638ccf98d041;pid=505;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+]3008;end=f1e1814a5a084ff0a87684b194248e2c\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=98e1bc655a9a43cf9fabb8317aaf69a8\]3008;end=7b91399758474e44887b752e81330469\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   23.366862] reboot: Power down

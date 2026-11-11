@@ -50,6 +50,8 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   usr/local/bin/emunix-session etc/systemd/user/emunix-session.service \
   usr/local/bin/emunix-firstboot etc/systemd/system/firstboot.service \
   etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
+  usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
+  etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \
   etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do
@@ -66,6 +68,7 @@ for f in usr/bin/gcc usr/bin/cmake usr/bin/make build etc/sudoers.d/20-aurbuilde
 done
 
 grep -q '^PARTLABEL=rootfs_a / *ext4 *ro' "$MNT/etc/fstab" || fail "fstab has no read-only rootfs_a root"
+grep -q '^PARTLABEL=var .* /var ' "$MNT/etc/fstab" || fail "fstab has no /var mount for the /etc overlay"
 grep -q '^PARTLABEL=home .* /storage ' "$MNT/etc/fstab" || fail "fstab has no /storage subvolume"
 grep -q '^retrogamer:' "$MNT/etc/passwd" || fail "user retrogamer missing"
 grep -q '^wheel:.*retrogamer' "$MNT/etc/group" || fail "retrogamer is not in wheel"

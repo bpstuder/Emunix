@@ -32,5 +32,9 @@ See `build/build-image.sh` and `.github/workflows/build.yml`. Requires an Arch h
 - Boots into EmulationStation-DE on tty1; quitting it drops to a shell with the journal hint.
 - Games are launched from `/storage/roms/<system>/`; `/etc/emulationstation` holds the read-only
   defaults, copied to `~/ES-DE` on first login so your edits survive image updates.
+- The root filesystem is read-only, but `/etc` is an overlay: hostname changes, Wi-Fi profiles and
+  anything else that writes config at runtime land on `/var/lib/emunix/overlay/etc/<slot>` and
+  survive a reboot. Booting the other root slot — what an image update does — starts from that
+  image's `/etc` again, so `/etc` edits do not carry across an update.
 - ROMs/bios/saves/states live under `/storage`.
 - No copyrighted assets are included; supply your own.

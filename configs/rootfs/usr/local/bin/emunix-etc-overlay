@@ -1,0 +1,25 @@
+#!/bin/bash
+# Emunix: give /etc a writable overlay on the read-only root. NetworkManager profiles, the
+# hostname and anything else that seeds config at runtime then work and survive a reboot.
+#
+# The upper and work directories live on /var, keyed by the root slot, so a device that boots the
+# other slot (an image update) gets that image's /etc instead of the previous slot's edits.
+# Started by emunix-etc-overlay.service. Exits non-zero rather than leaving /etc writable in a
+# place the next image does not expect.
+set -euo pipefail
+
+root=$(findmnt -no SOURCE /) || { echo "emunix-etc-overlay: no root mount" >&2; exit 1; }
+label=$(lsblk -no PARTLABEL "$root")
+slot=${label#rootfs_}
+if [ "$slot" = "$label" ] || [ -z "$slot" ]; then
+  echo "emunix-etc-overlay: $root ($label) is not a rootfs_<slot> partition" >&2
+  exit 1
+fi
+
+if [ "$(findmnt -no FSTYPE /etc 2>/dev/null || true)" = overlay ]; then
+  exit 0
+fi
+
+dir=/var/lib/emunix/overlay/etc/$slot
+mkdir -p "$dir/upper" "$dir/work"
+mount -t overlay overlay -o "lowerdir=/etc,upperdir=$dir/upper,workdir=$dir/work" /etc

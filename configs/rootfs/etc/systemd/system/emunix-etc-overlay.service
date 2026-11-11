@@ -1,0 +1,21 @@
+[Unit]
+Description=Emunix: writable /etc overlay on the read-only root
+# The overlay's upper directory lives on /var, and everything below local-fs.target expects to
+# read the real /etc: run early, with nothing from the default targets pulled in.
+DefaultDependencies=no
+Requires=var.mount
+After=var.mount
+Before=local-fs.target
+Conflicts=umount.target
+Before=umount.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/emunix-etc-overlay
+# Unmount the overlay before /var goes: the kernel holds the upper directory open, and /var is
+# what carries the writes.
+ExecStop=/usr/bin/umount /etc
+
+[Install]
+WantedBy=sysinit.target

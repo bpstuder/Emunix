@@ -126,6 +126,9 @@ systemctl enable NetworkManager >/dev/null
 systemctl enable getty@tty1.service >/dev/null
 # First boot owns the disk resize, the /storage tree and the shipped password (card 05).
 systemctl enable firstboot.service >/dev/null
+# /etc gets an overlay early in every boot: the root stays read-only and config written at runtime
+# (NetworkManager profiles, hostname) lands on /var instead.
+systemctl enable emunix-etc-overlay.service >/dev/null
 
 # AUR packages (profiles/aur.txt): built here as an unprivileged user, then the toolchain that
 # built them is purged so the image ships no compiler.
