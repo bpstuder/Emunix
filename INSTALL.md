@@ -37,4 +37,8 @@ See `build/build-image.sh` and `.github/workflows/build.yml`. Requires an Arch h
   survive a reboot. Booting the other root slot — what an image update does — starts from that
   image's `/etc` again, so `/etc` edits do not carry across an update.
 - ROMs/bios/saves/states live under `/storage`.
+- `sudo emunix-slot status` prints the running root slot, the loader's default entry and a pending
+  one-shot. `sudo emunix-slot next b` makes slot b the default from then on; `sudo emunix-slot once b`
+  boots it once only, so the boot after a failed attempt falls back to the default again. Both refuse
+  a slot whose filesystem `e2fsck -fn` rejects.
 - No copyrighted assets are included; supply your own.

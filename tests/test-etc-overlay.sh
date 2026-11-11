@@ -29,7 +29,8 @@ printf '#!/bin/sh\necho "mkdir $*" >>"%s/calls"\n' "$TMP" >"$TMP/mkdir"
 chmod +x "$TMP"/findmnt "$TMP"/lsblk "$TMP"/mount "$TMP"/mkdir
 
 run() { # [VAR=value ...]
-  env "$@" PATH="$TMP:$PATH" "$OVERLAY" >>"$TMP/out" 2>&1
+  # The image's /usr/local/bin on PATH: emunix-etc-overlay asks emunix-slot which slot is running.
+  env "$@" PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" "$OVERLAY" >>"$TMP/out" 2>&1
 }
 
 # 1. Booting slot b puts the writes in b's own directories on /var.

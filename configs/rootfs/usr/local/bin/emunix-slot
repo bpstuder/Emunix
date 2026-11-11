@@ -1,0 +1,94 @@
+#!/bin/bash
+# Emunix: which root slot is running, and which slot boots next.
+#
+#   emunix-slot status     the running slot, the loader's default entry, and a pending one-shot;
+#                          writes the running slot to /run/emunix/active_slot for os-updater.
+#   emunix-slot next <a|b> make slot <a|b> the loader default (loader.conf) from now on.
+#   emunix-slot once <a|b> boot slot <a|b> on the next boot only, leaving the default alone.
+#   emunix-slot active     just the running slot; emunix-etc-overlay keys /etc's upper directory
+#                          by this, so "which slot am I on" has one answer in the whole image.
+#
+# Both writers refuse a slot whose filesystem e2fsck -fn will not accept: a broken update must not
+# become the default. Run as root (the ESP, /run and the EFI variables are root-only).
+set -euo pipefail
+
+# Overridable so tests can work on a temporary directory instead of the real ESP and /run.
+ESP=${EMUNIX_ESP:-/boot}
+ACTIVE_SLOT_FILE=${EMUNIX_RUN_DIR:-/run/emunix}/active_slot
+
+die() { echo "emunix-slot: $*" >&2; exit 1; }
+usage() { die "usage: emunix-slot status | next <a|b> | once <a|b>"; }
+
+slot_of_root() {
+  local root label slot
+  root=$(findmnt -no SOURCE /) || die "no root mount"
+  label=$(lsblk -no PARTLABEL "$root") || die "cannot read the partition label of $root"
+  slot=${label#rootfs_}
+  [ "$slot" != "$label" ] && [ -n "$slot" ] || die "$root ($label) is not a rootfs_<slot> partition"
+  printf '%s\n' "$slot"
+}
+
+# A slot is selectable when its boot entry exists and its filesystem checks out. The entry check
+# comes first because e2fsck on a slot nobody can boot is wasted work.
+selectable() {
+  local slot=${1:-} dev out
+  case $slot in a|b) ;; *) usage ;; esac
+  [ -f "$ESP/loader/entries/emunix-$slot.conf" ] ||
+    die "slot $slot: $ESP/loader/entries/emunix-$slot.conf is missing"
+  dev=/dev/disk/by-partlabel/rootfs_$slot
+  # e2fsck -fn only reads, so it is safe on a slot that happens to be the running (read-only) root,
+  # and it is also what reports a slot whose partition is not there at all.
+  if ! out=$(e2fsck -fn "$dev" 2>&1); then
+    printf '%s\n' "$out" >&2
+    die "slot $slot: $dev does not validate, refusing to select it"
+  fi
+  printf '%s\n' "$slot"
+}
+
+status() {
+  local slot default oneshot
+  slot=$(slot_of_root)
+  [ -f "$ESP/loader/loader.conf" ] || die "$ESP/loader/loader.conf is missing: is the ESP mounted?"
+  mkdir -p "$(dirname "$ACTIVE_SLOT_FILE")"
+  printf '%s\n' "$slot" >"$ACTIVE_SLOT_FILE"
+  default=$(sed -n 's/^default[[:space:]][[:space:]]*//p' "$ESP/loader/loader.conf")
+  # The loader deletes the one-shot variable as it reads it, so this is only non-empty on the
+  # boot that follows `once`. No EFI variables (a container, a legacy BIOS boot) reads as none.
+  oneshot=$(bootctl status 2>/dev/null | sed -n 's/^[[:space:]]*OneShot Entry:[[:space:]]*//p' || true)
+  echo "active: $slot"
+  echo "default: ${default:-none}"
+  echo "oneshot: ${oneshot:-none}"
+}
+
+next() {
+  local slot loader_conf
+  slot=$(selectable "${1:-}")
+  loader_conf=$ESP/loader/loader.conf
+  [ -f "$loader_conf" ] || die "$loader_conf is missing: is the ESP mounted?"
+  if grep -q '^default[[:space:]]' "$loader_conf"; then
+    sed -i "s|^default[[:space:]].*|default emunix-$slot.conf|" "$loader_conf"
+  else
+    printf 'default emunix-%s.conf\n' "$slot" >>"$loader_conf"
+  fi
+  echo "default: emunix-$slot.conf (slot $slot)"
+}
+
+once() {
+  local slot
+  slot=$(selectable "${1:-}")
+  # systemd-boot's own one-shot entry: the firmware's BootNext cannot pick a loader entry, and the
+  # loader clears this before handing off, so a failed boot falls back to the default next time.
+  bootctl set-oneshot "emunix-$slot.conf"
+  echo "oneshot: emunix-$slot.conf (slot $slot, next boot only)"
+}
+
+[ $# -ge 1 ] || usage
+cmd=$1
+shift
+case $cmd in
+  status) [ $# -eq 0 ] || usage; status ;;
+  active) [ $# -eq 0 ] || usage; slot_of_root ;;
+  next) [ $# -eq 1 ] || usage; next "$1" ;;
+  once) [ $# -eq 1 ] || usage; once "$1" ;;
+  *) usage ;;
+esac

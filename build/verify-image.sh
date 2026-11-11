@@ -39,6 +39,10 @@ for slot in a b; do
   grep -q "root=PARTLABEL=rootfs_$slot ro" "$MNT/loader/entries/emunix-$slot.conf" ||
     fail "emunix-$slot.conf does not boot rootfs_$slot read-only"
 done
+# One template writes both entries: nothing but the slot may differ between them.
+[ "$(sed 's/rootfs_a/rootfs_X/; s/ (slot a)/ (slot X)/' "$MNT/loader/entries/emunix-a.conf")" = \
+  "$(sed 's/rootfs_b/rootfs_X/; s/ (slot b)/ (slot X)/' "$MNT/loader/entries/emunix-b.conf")" ] ||
+  fail "emunix-a.conf and emunix-b.conf differ by more than the slot"
 umount "$MNT"
 
 # 3. rootfs_a: the generated fstab, the user, machine-id, the frontend, the session.
@@ -50,7 +54,7 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   usr/local/bin/emunix-session etc/systemd/user/emunix-session.service \
   usr/local/bin/emunix-firstboot etc/systemd/system/firstboot.service \
   etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
-  usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
+  usr/local/bin/emunix-slot usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
   etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \

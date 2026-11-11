@@ -1,0 +1,133 @@
+image /work/out/emunix-2026.11.11-x86_64.img, accel kvm
+=== boot 1: next b
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.AIsNh5F4VD/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.AIsNh5F4VD/OVMF_VARS.fd -drive file=/tmp/tmp.AIsNh5F4VD/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62603/524288 files, 704711/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=65b617effff34f57b5b0360538228e4a;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=86fb36e9527946789e053b5f1391aa26;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=036d72ab1eb3440b9380bffdea2d9848;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=86fb36e9527946789e053b5f1391aa26;pid=447;pidfdid=138;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=eaa787c06aff4993a05f64df25fb4211;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=c694043cebee4203b86dd51d260fd023;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=86fb36e9527946789e053b5f1391aa26;pid=447;pidfdid=138;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=6f0c1beb-ef20-4fc6-841b-f8ee3f1ceb82;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=86fb36e9-5279-4678-9e05-3b5f1391aa26;pid=538;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=b123621d-9dc8-4486-a3c8-973e8efd7cb1;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=86fb36e9-5279-4678-9e05-3b5f1391aa26;pid=538;cwd=/home/retrogamer\
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+For security reasons, the password you type will not be visible.
+
+[sudo] password for retrogamer: 
+]3008;end=b123621d-9dc8-4486-a3c8-973e8efd7cb1;exit=success\]3008;start=6f0c1beb-ef20-4fc6-841b-f8ee3f1ceb82;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=86fb36e9-5279-4678-9e05-3b5f1391aa26;pid=538;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-BOOT1: $(grep -o "root=[^ ]*" /proc/cmdline)"; sudo emunix-slot status >/tmp/slot-status; echo "ACTIVE-BOOT1: $(sed -n "s/^active: //p" /tmp/slot-status)"; echo "DEFAULT-BOOT1: $(sed -n "s/^default: //p" /tmp/slot-status)"; echo "ONESHOT-BOOT1: $(sed -n "s/^oneshot: //p" /tmp/slot-status)"; echo "SLOTFILE-BOOT1: $(cat /run/emunix/active_slot)"; echo "NEXT-BOOT1: $(sudo emunix-slot next b 2>&1)"; echo "LOADER-CONF-BOOT1: $(sudo cat /boot/loader/loader.conf | tr '\n' ' ')"; echo SLOT-BOOT1-END
+[?2004l]3008;start=9300e91d-4c84-446c-b27d-a4397fcbe087;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=86fb36e9-5279-4678-9e05-3b5f1391aa26;pid=538;cwd=/home/retrogamer\ROOT-BOOT1: root=PARTLABEL=rootfs_a
+
+ACTIVE-BOOT1: a
+DEFAULT-BOOT1: emunix-a.conf
+ONESHOT-BOOT1: none
+SLOTFILE-BOOT1: a
+NEXT-BOOT1: default: emunix-b.conf (slot b)
+LOADER-CONF-BOOT1: default emunix-b.conf timeout 3 
+SLOT-BOOT1-END
+]3008;end=9300e91d-4c84-446c-b27d-a4397fcbe087;exit=success\]3008;start=6f0c1beb-ef20-4fc6-841b-f8ee3f1ceb82;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=86fb36e9-5279-4678-9e05-3b5f1391aa26;pid=538;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+[?2004h[?2004l
+]3008;end=c694043cebee4203b86dd51d260fd023\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=65b617effff34f57b5b0360538228e4a\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   13.233401] reboot: Power down
+=== boot 2: after next b, once a
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.AIsNh5F4VD/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.AIsNh5F4VD/OVMF_VARS.fd -drive file=/tmp/tmp.AIsNh5F4VD/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[30m[47m[0m[30m[47m          Emunix (slot b)           [021;063H[1m[37m[40m[0m[37m[40m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_b: clean, 62603/524288 files, 704699/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=149d8219459d45278b996ffa52746478;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=25ba5c540375406c9c5e74b7b02743e6;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=91bbc52b2d8a4131a7a48fd7c545463c;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=25ba5c540375406c9c5e74b7b02743e6;pid=445;pidfdid=12366;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=f9aa93d256e94867a6674632fb577725;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=bc84930dfa0c4f4c8360c475afb22d7f;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=25ba5c540375406c9c5e74b7b02743e6;pid=445;pidfdid=12366;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=e327a11a-4548-49ce-9ae2-84937e8aec4b;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=25ba5c54-0375-406c-9c5e-74b7b02743e6;pid=532;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=7463310b-ac31-4c9f-a0bf-03999c0f7a04;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=25ba5c54-0375-406c-9c5e-74b7b02743e6;pid=532;cwd=/home/retrogamer\[sudo] password for retrogamer: 
+]3008;end=7463310b-ac31-4c9f-a0bf-03999c0f7a04;exit=success\]3008;start=e327a11a-4548-49ce-9ae2-84937e8aec4b;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=25ba5c54-0375-406c-9c5e-74b7b02743e6;pid=532;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-BOOT2: $(grep -o "root=[^ ]*" /proc/cmdline)"; sudo emunix-slot status >/tmp/slot-status; echo "ACTIVE-BOOT2: $(sed -n "s/^active: //p" /tmp/slot-status)"; echo "DEFAULT-BOOT2: $(sed -n "s/^default: //p" /tmp/slot-status)"; echo "ONESHOT-BOOT2: $(sed -n "s/^oneshot: //p" /tmp/slot-status)"; echo "SLOTFILE-BOOT2: $(cat /run/emunix/active_slot)"; echo "ONCE-BOOT2: $(sudo emunix-slot once a 2>&1)"; sudo emunix-slot status >/tmp/slot2; echo "ONESHOT-AFTER-BOOT2: $(sed -n 's/^oneshot: //p' /tmp/slot2)"; echo SLOT-BOOT2-END
+[?2004l]3008;start=bef8cfb0-a4df-4109-bbe7-2c92a3d64c48;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=25ba5c54-0375-406c-9c5e-74b7b02743e6;pid=532;cwd=/home/retrogamer\ROOT-BOOT2: root=PARTLABEL=rootfs_b
+
+ACTIVE-BOOT2: b
+DEFAULT-BOOT2: emunix-b.conf
+ONESHOT-BOOT2: none
+SLOTFILE-BOOT2: b
+ONCE-BOOT2: oneshot: emunix-a.conf (slot a, next boot only)
+ONESHOT-AFTER-BOOT2: emunix-a.conf
+SLOT-BOOT2-END
+]3008;end=bef8cfb0-a4df-4109-bbe7-2c92a3d64c48;exit=success\]3008;start=e327a11a-4548-49ce-9ae2-84937e8aec4b;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=25ba5c54-0375-406c-9c5e-74b7b02743e6;pid=532;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+]3008;end=bc84930dfa0c4f4c8360c475afb22d7f\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=91bbc52b2d8a4131a7a48]3008;end=149d8219459d45278b996ffa52746478\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   13.561595] reboot: Power down
+=== boot 3: the one-shot boot
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.AIsNh5F4VD/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.AIsNh5F4VD/OVMF_VARS.fd -drive file=/tmp/tmp.AIsNh5F4VD/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62603/524288 files, 704711/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=8dd6367263ce4944952f73c6f27090b5;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=2bb48fad65504594acc00476744dddc0;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=52552f9eb26140b2b56359179703a469;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=2bb48fad65504594acc00476744dddc0;pid=440;pidfdid=4224;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=c2bf015e4c534a71a96f5208f6ed7dca;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=0d1fea34d73e43a0bf3daeccede0b792;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=2bb48fad65504594acc00476744dddc0;pid=440;pidfdid=4224;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=a94aa7b6-538d-4753-a3ef-c0c92b1df380;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=2bb48fad-6550-4594-acc0-0476744dddc0;pid=488;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=74e58fbd-1150-419d-ba8b-08e3c231cf2a;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=2bb48fad-6550-4594-acc0-0476744dddc0;pid=488;cwd=/home/retrogamer\[sudo] password for retrogamer: 
+]3008;end=74e58fbd-1150-419d-ba8b-08e3c231cf2a;exit=success\]3008;start=a94aa7b6-538d-4753-a3ef-c0c92b1df380;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=2bb48fad-6550-4594-acc0-0476744dddc0;pid=488;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-BOOT3: $(grep -o "root=[^ ]*" /proc/cmdline)"; sudo emunix-slot status >/tmp/slot-status; echo "ACTIVE-BOOT3: $(sed -n "s/^active: //p" /tmp/slot-status)"; echo "DEFAULT-BOOT3: $(sed -n "s/^default: //p" /tmp/slot-status)"; echo "ONESHOT-BOOT3: $(sed -n "s/^oneshot: //p" /tmp/slot-status)"; echo "SLOTFILE-BOOT3: $(cat /run/emunix/active_slot)"; echo SLOT-BOOT3-END [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[KD
+[?2004l]3008;start=c8c902d7-73f7-4bab-9f84-dbcff717fb3f;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=2bb48fad-6550-4594-acc0-0476744dddc0;pid=488;cwd=/home/retrogamer\ROOT-BOOT3: root=PARTLABEL=rootfs_a
+
+ACTIVE-BOOT3: a
+DEFAULT-BOOT3: emunix-b.conf
+ONESHOT-BOOT3: none
+SLOTFILE-BOOT3: a
+SLOT-BOOT3-END
+]3008;end=c8c902d7-73f7-4bab-9f84-dbcff717fb3f;exit=success\]3008;start=a94aa7b6-538d-4753-a3ef-c0c92b1df380;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=2bb48fad-6550-4594-acc0-0476744dddc0;pid=488;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+]3008;end=0d1fea34d73e43a0bf3daeccede0b792\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=52552f9eb26140b2b5635]3008;end=8dd6367263ce4944952f73c6f27090b5\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   10.958786] reboot: Power down
+=== boot 4: falls back to the default
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.AIsNh5F4VD/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.AIsNh5F4VD/OVMF_VARS.fd -drive file=/tmp/tmp.AIsNh5F4VD/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[30m[47m[0m[30m[47m          Emunix (slot b)           [021;063H[1m[37m[40m[0m[37m[40m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_b: clean, 62603/524288 files, 704699/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=48348aa8f0e44feeb5f98357f6928e08;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=c5a0ad88a3554237bc24c558b25a2f31;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=195543672bed48bb8e637dd38864cce5;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=c5a0ad88a3554237bc24c558b25a2f31;pid=443;pidfdid=12378;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=b01fc61e26bf40f4a2332c476ff336e1;type=service\P+q6E616D65\
+Arch Linux 7.2.15-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=8e97ab4416354e049103b66e93d5d06d;user=root;hostname=emunix;machineid=16475ad69a6d44fb9166e88f9ff8f7db;bootid=c5a0ad88a3554237bc24c558b25a2f31;pid=443;pidfdid=12378;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=83be24d3-8f32-417b-995f-5e37a0f32dfe;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=c5a0ad88-a355-4237-bc24-c558b25a2f31;pid=500;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo -v
+[?2004l]3008;start=4c597b2a-bae8-4648-af23-1a3f50797dce;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=c5a0ad88-a355-4237-bc24-c558b25a2f31;pid=500;cwd=/home/retrogamer\[sudo] password for retrogamer: 
+]3008;end=4c597b2a-bae8-4648-af23-1a3f50797dce;exit=success\]3008;start=83be24d3-8f32-417b-995f-5e37a0f32dfe;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=c5a0ad88-a355-4237-bc24-c558b25a2f31;pid=500;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "ROOT-BOOT4: $(grep -o "root=[^ ]*" /proc/cmdline)"; sudo emunix-slot status >/tmp/slot-status; echo "ACTIVE-BOOT4: $(sed -n "s/^active: //p" /tmp/slot-status)"; echo "DEFAULT-BOOT4: $(sed -n "s/^default: //p" /tmp/slot-status)"; echo "ONESHOT-BOOT4: $(sed -n "s/^oneshot: //p" /tmp/slot-status)"; echo "SLOTFILE-BOOT4: $(cat /run/emunix/active_slot)"; echo SLOT-BOOT4-END [A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[KD
+[?2004l]3008;start=ad6296e5-3e59-476f-919c-86068dc2cff2;type=command;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=c5a0ad88-a355-4237-bc24-c558b25a2f31;pid=500;cwd=/home/retrogamer\ROOT-BOOT4: root=PARTLABEL=rootfs_b
+
+ACTIVE-BOOT4: b
+DEFAULT-BOOT4: emunix-b.conf
+ONESHOT-BOOT4: none
+SLOTFILE-BOOT4: b
+SLOT-BOOT4-END
+]3008;end=ad6296e5-3e59-476f-919c-86068dc2cff2;exit=success\]3008;start=83be24d3-8f32-417b-995f-5e37a0f32dfe;type=shell;machineid=16475ad69a6d44fb9166e88f9ff8f7db;user=retrogamer;hostname=emunix;bootid=c5a0ad88-a355-4237-bc24-c558b25a2f31;pid=500;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+[?2004h[?2004l
+]3008;end=8e97ab4416354e049103b66e93d5d06d\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=195543672bed48bb8e637]3008;end=48348aa8f0e44feeb5f98357f6928e08\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   11.632747] reboot: Power down

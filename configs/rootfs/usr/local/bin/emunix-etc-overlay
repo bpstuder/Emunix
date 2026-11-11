@@ -8,13 +8,10 @@
 # place the next image does not expect.
 set -euo pipefail
 
-root=$(findmnt -no SOURCE /) || { echo "emunix-etc-overlay: no root mount" >&2; exit 1; }
-label=$(lsblk -no PARTLABEL "$root")
-slot=${label#rootfs_}
-if [ "$slot" = "$label" ] || [ -z "$slot" ]; then
-  echo "emunix-etc-overlay: $root ($label) is not a rootfs_<slot> partition" >&2
-  exit 1
-fi
+# One derivation for "which slot am I on": emunix-slot active is what `emunix-slot status` reports
+# and what os-updater reads, so /etc's upper directory is keyed by exactly that slot.
+slot=$(emunix-slot active) ||
+  { echo "emunix-etc-overlay: cannot derive the root slot" >&2; exit 1; }
 
 if [ "$(findmnt -no FSTYPE /etc 2>/dev/null || true)" = overlay ]; then
   exit 0
