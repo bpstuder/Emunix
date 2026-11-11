@@ -8,6 +8,7 @@ btrfs-progs
 e2fsprogs
 dosfstools
 networkmanager
+cloud-guest-utils          # growpart: firstboot grows the last partition to the device size
 pipewire
 pipewire-pulse
 wireplumber

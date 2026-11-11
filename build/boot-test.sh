@@ -1,20 +1,44 @@
 #!/usr/bin/env bash
 # Boot a built image under QEMU + OVMF and prove it reaches multi-user with a serial login.
-# Requires: qemu-system-x86, edk2-ovmf, expect. Usage: boot-test.sh <emunix.img> [log]
+# Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect.
+# Usage: boot-test.sh <emunix.img> [log]
 set -euo pipefail
 IMG=${1:?usage: boot-test.sh <emunix.img> [log]}
 LOG=${2:-$(dirname "$0")/../evidence/m0-boot.log}
 OVMF=/usr/share/edk2/x64
 [ -f "$IMG" ] || { echo "no image $IMG" >&2; exit 1; }
 [ -f "$OVMF/OVMF_CODE.4m.fd" ] || { echo "edk2-ovmf is not installed ($OVMF)" >&2; exit 1; }
-VARS=$(mktemp)
+[ "$(id -u)" -eq 0 ] || { echo "boot-test.sh must run as root (loop mount)" >&2; exit 1; }
+
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-loop.sh
+. "$SCRIPT_DIR/lib-loop.sh"
+WORK=$(mktemp -d)
+VARS=$WORK/OVMF_VARS.fd
+MNT=$WORK/mnt
+LOOP=
+trap 'umount -R "$MNT" 2>/dev/null || true; losetup -d "${LOOP:-}" 2>/dev/null || true; rm -rf "$WORK"' EXIT
+
+# firstboot.service (card 05) grows the disk and replaces the shipped password on a real first
+# boot. This test is about reaching multi-user and logging in, so the copy is marked initialized
+# first and the shipped password keeps working.
+cp --sparse=always "$IMG" "$WORK/disk.img"
+LOOP=$(attach_image "$WORK/disk.img")
+mkdir -p "$MNT"
+mount "${LOOP}p4" "$MNT"
+mkdir -p "$MNT/lib/emunix"
+: >"$MNT/lib/emunix/initialized"
+umount "$MNT"
+losetup -d "$LOOP"
+LOOP=
+
 cp "$OVMF/OVMF_VARS.4m.fd" "$VARS"
-trap 'rm -f "$VARS"' EXIT
 ACCEL=tcg; [ -w /dev/kvm ] && ACCEL=kvm
 mkdir -p "$(dirname "$LOG")"
 : >"$LOG" # each run is its own transcript
 
-expect -f - "$IMG" "$LOG" "$OVMF/OVMF_CODE.4m.fd" "$VARS" "$ACCEL" <<'EXPECT'
+expect -f - "$WORK/disk.img" "$LOG" "$OVMF/OVMF_CODE.4m.fd" "$VARS" "$ACCEL" <<'EXPECT'
 set img [lindex $argv 0]
 set log [lindex $argv 1]
 set code [lindex $argv 2]

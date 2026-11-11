@@ -1,0 +1,91 @@
+#!/bin/bash
+# Emunix first boot: grow the last partition into the rest of the device, seed the /storage tree,
+# and retire the shipped retrogamer:retrogamer password. Run once by firstboot.service before the
+# frontend starts; the marker is written last, so an interrupted first boot simply runs again.
+#
+# The password change is deliberately not a gate: a console prompt is offered, and a generated
+# password takes over when nobody answers, so a keyboard-less or headless boot still reaches the
+# frontend with the shipped password already dead.
+set -uo pipefail
+
+USER_NAME=retrogamer
+# PREFIX is empty in the image; tests/test-firstboot.sh points it at a sandbox root. /var is a
+# partition of its own and persists across updates, so the marker survives an image update.
+PREFIX=${EMUNIX_FIRSTBOOT_PREFIX:-}
+MARKER=$PREFIX/var/lib/emunix/initialized
+STORAGE=$PREFIX/storage
+SYSTEMS=$PREFIX/etc/emulationstation/es_systems.xml
+# Overridden by tests/test-firstboot.sh, which runs the script against a sandbox root and a stub
+# PATH; the unit runs with the defaults.
+TTY=${EMUNIX_FIRSTBOOT_TTY:-/dev/tty1}
+PASSWORD_TIMEOUT=${EMUNIX_FIRSTBOOT_TIMEOUT:-30}
+
+log() { printf 'emunix-firstboot: %s\n' "$*"; }
+fail() { log "$*"; exit 1; }
+
+# 1. The image is built at a fixed size and flashed onto something bigger: extend the last
+# partition (home, which carries /storage) to the end of the device and hand the space to btrfs.
+grow_disk() {
+  local part disk num rc
+  part=$(findmnt -no SOURCE "$STORAGE") || fail "no /storage mount"
+  # A btrfs subvolume mount reports "/dev/vda5[/storage]"; growpart wants the disk and a number.
+  part=${part%%\[*}
+  disk=$(lsblk -no pkname "$part")
+  num=$(lsblk -no partn "$part")
+  if [ -z "$disk" ] || [ -z "$num" ]; then
+    fail "cannot work out the disk behind $part"
+  fi
+  growpart "/dev/$disk" "$num"
+  rc=$?
+  # growpart: 0 = changed, 1 = NOCHANGE (already fills the device), anything else is an error.
+  case "$rc" in
+    0) log "grew $part into the free space" ;;
+    1) log "$part already fills the device" ;;
+    *) fail "growpart /dev/$disk $num failed (rc=$rc)" ;;
+  esac
+  btrfs filesystem resize max "$STORAGE" || fail "btrfs filesystem resize max $STORAGE failed"
+}
+
+# 2. The ROM tree the frontend scans: ES-DE only lists a system whose %ROMPATH% directory exists,
+# and es_systems.xml is the single list of the systems this image ships.
+seed_storage() {
+  local sys
+  mkdir -p "$STORAGE/roms" "$STORAGE/bios" "$STORAGE/saves" "$STORAGE/states" ||
+    fail "cannot create the /storage tree"
+  while read -r sys; do
+    [ -n "$sys" ] || continue
+    mkdir -p "$STORAGE/roms/$sys" || fail "cannot create $STORAGE/roms/$sys"
+  done < <(sed -n 's|.*<path>%ROMPATH%/\([^<]*\)</path>.*|\1|p' "$SYSTEMS")
+  # The session runs as retrogamer: without this it cannot save a state or add a ROM.
+  chown -R "$USER_NAME:$USER_NAME" "$STORAGE" || fail "cannot chown $STORAGE"
+}
+
+# 3. /etc/shadow is on the read-only root, so the write needs a temporary remount.
+set_password() {
+  local pw=""
+  printf '\nEmunix first boot: password for %s (Enter generates one).\nPassword: ' "$USER_NAME" >"$TTY" 2>/dev/null
+  read -rs -t "$PASSWORD_TIMEOUT" pw
+  printf '\n' >"$TTY" 2>/dev/null
+  if [ -z "$pw" ]; then
+    pw=$(head -c 128 /dev/urandom | tr -dc 'A-HJ-NP-Za-km-z2-9' | head -c 12)
+    # Shown once on the console and journaled, so it is never lost to a missed screen.
+    log "no answer in ${PASSWORD_TIMEOUT}s: generated password for $USER_NAME: $pw"
+  fi
+  mount -o remount,rw / || fail "cannot remount / read-write to set the password"
+  if ! printf '%s:%s\n' "$USER_NAME" "$pw" | chpasswd; then
+    mount -o remount,ro /
+    fail "chpasswd failed: the shipped password is still in place"
+  fi
+  sync
+  mount -o remount,ro / || fail "cannot remount / read-only again"
+  log "password for $USER_NAME replaced: the shipped one no longer authenticates"
+}
+
+grow_disk
+seed_storage
+set_password
+
+# 4. Last: an interrupted first boot must retry everything above.
+mkdir -p "$(dirname "$MARKER")" || fail "cannot create $(dirname "$MARKER")"
+: >"$MARKER" || fail "cannot write $MARKER"
+log "first boot complete"

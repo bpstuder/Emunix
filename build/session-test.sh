@@ -27,7 +27,8 @@ trap 'umount -R "$WORK/mnt" 2>/dev/null || true; losetup -d "${LOOP:-}" 2>/dev/n
 
 # The ROM tree is firstboot's (card 05) and is empty in this image. Seed it on a copy so the frontend
 # has one system to show; the placeholder is 16 zero bytes, no ROM content, and never touches the
-# image under test.
+# image under test. firstboot also replaces the shipped password, and this test logs in with it, so
+# the copy is marked initialized on /var first.
 SPARSE=--sparse=always
 cp "$SPARSE" "$IMG" "$WORK/boot.img"
 LOOP=$(attach_image "$WORK/boot.img")
@@ -35,6 +36,10 @@ mkdir -p "$WORK/mnt"
 mount "${LOOP}p5" "$WORK/mnt"
 mkdir -p "$WORK/mnt/storage/roms/nes"
 head -c 16 /dev/zero >"$WORK/mnt/storage/roms/nes/placeholder.nes"
+umount "$WORK/mnt"
+mount "${LOOP}p4" "$WORK/mnt"
+mkdir -p "$WORK/mnt/lib/emunix"
+: >"$WORK/mnt/lib/emunix/initialized"
 umount "$WORK/mnt"
 losetup -d "$LOOP"
 unset LOOP

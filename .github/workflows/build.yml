@@ -14,10 +14,11 @@ jobs:
           docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
             pacman -Sy --noconfirm shellcheck >/dev/null &&
             shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
-              configs/rootfs/etc/skel/.bash_profile &&
+              configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/etc/skel/.bash_profile &&
             bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
-              configs/rootfs/etc/skel/.bash_profile &&
+              configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/etc/skel/.bash_profile &&
             bash tests/test-os-updater.sh &&
+            bash tests/test-firstboot.sh &&
             bash tests/test-session.sh"
       - name: Build image
         run: |
@@ -39,6 +40,11 @@ jobs:
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
                      bash build/session-test.sh out/emunix-*-x86_64.img evidence"
+      - name: First boot test (disk growth, /storage, shipped password)
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
+                     bash build/firstboot-test.sh out/emunix-*-x86_64.img evidence"
       - name: Upload session evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -47,6 +53,7 @@ jobs:
           path: |
             evidence/m0-session.log
             evidence/m0-session-*.png
+            evidence/m0-firstboot.log
       - name: Upload checksum
         # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7

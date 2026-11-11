@@ -25,6 +25,7 @@ sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<date>-x86_64.img
 sudo ./build/verify-image.sh out/emunix-*-x86_64.img
 sudo ./build/boot-test.sh out/emunix-*-x86_64.img  # QEMU + OVMF, login on ttyS0
 sudo ./build/session-test.sh out/emunix-*-x86_64.img  # QEMU + virtio-vga: ES-DE session, screenshots
+sudo ./build/firstboot-test.sh out/emunix-*-x86_64.img  # two boots on a bigger disk: growth, /storage, password
 ```
 
 Output lands in `out/` (a 24 GiB GPT disk image, sparse on disk; override with `TOTAL_SIZE`).

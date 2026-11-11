@@ -48,6 +48,8 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/systemd/system/multi-user.target.wants/NetworkManager.service \
   usr/bin/es-de usr/lib/libretro/nestopia_libretro.so usr/bin/gamescope \
   usr/local/bin/emunix-session etc/systemd/user/emunix-session.service \
+  usr/local/bin/emunix-firstboot etc/systemd/system/firstboot.service \
+  etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \
   etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do
@@ -72,7 +74,13 @@ grep -q '^wheel:.*retrogamer' "$MNT/etc/group" || fail "retrogamer is not in whe
   fail "default target is not multi-user.target"
 umount "$MNT"
 
-# 4. home: the user's directory and the /storage subvolume live on their own partition.
+# 4. var: first boot has not run yet, so its unit must still fire on the flashed device.
+mount -o ro "${LOOP}p4" "$MNT"
+[ ! -e "$MNT/lib/emunix/initialized" ] ||
+  fail "/var/lib/emunix/initialized is in the image: first boot would be skipped"
+umount "$MNT"
+
+# 5. home: the user's directory and the /storage subvolume live on their own partition.
 mount -o ro "${LOOP}p5" "$MNT"
 [ -d "$MNT/retrogamer" ] || fail "/home/retrogamer missing from the home partition"
 grep -q 'emunix-session' "$MNT/retrogamer/.bash_profile" || fail "tty1 login does not start the session"

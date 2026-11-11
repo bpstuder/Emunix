@@ -124,6 +124,8 @@ printf '%%wheel ALL=(ALL:ALL) ALL\n' >/etc/sudoers.d/10-wheel
 chmod 0440 /etc/sudoers.d/10-wheel
 systemctl enable NetworkManager >/dev/null
 systemctl enable getty@tty1.service >/dev/null
+# First boot owns the disk resize, the /storage tree and the shipped password (card 05).
+systemctl enable firstboot.service >/dev/null
 
 # AUR packages (profiles/aur.txt): built here as an unprivileged user, then the toolchain that
 # built them is purged so the image ships no compiler.
