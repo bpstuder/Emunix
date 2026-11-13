@@ -1,0 +1,16 @@
+[Unit]
+Description=Emunix: roll back when a slot repeatedly fails to boot
+DefaultDependencies=no
+Requires=emunix-boot-attempt.service
+After=emunix-boot-attempt.service
+Before=local-fs.target
+Conflicts=umount.target
+Before=umount.target
+OnFailure=emunix-rollback.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/emunix-health check
+
+[Install]
+WantedBy=sysinit.target

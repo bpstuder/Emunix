@@ -134,6 +134,11 @@ systemctl enable firstboot.service >/dev/null
 # /etc gets an overlay early in every boot: the root stays read-only and config written at runtime
 # (NetworkManager profiles, hostname) lands on /var instead.
 systemctl enable emunix-etc-overlay.service >/dev/null
+# Boot health: an attempt is counted before anything can fail, cleared after a boot that stays up,
+# and two unfinished attempts in a row flip the loader back to the other slot (emunix-slot bad).
+systemctl enable emunix-boot-attempt.service >/dev/null
+systemctl enable emunix-boot-health.service >/dev/null
+systemctl enable emunix-boot-clear.service >/dev/null
 # The signed-update check runs daily on AC power.
 systemctl enable emunix-os-updater.timer >/dev/null
 

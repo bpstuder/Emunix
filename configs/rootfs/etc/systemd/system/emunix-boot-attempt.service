@@ -1,0 +1,17 @@
+[Unit]
+Description=Emunix: record a boot attempt
+# As early as the counter can be written, and before anything else in the boot can fail. The
+# ESP comes along because the rollback unit needs it, and DefaultDependencies=no keeps the
+# usual After=basic.target off -- a boot that never reaches basic.target must still be counted.
+DefaultDependencies=no
+RequiresMountsFor=/boot /var/lib/emunix
+Before=local-fs.target
+Conflicts=umount.target
+Before=umount.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/emunix-health begin
+
+[Install]
+WantedBy=sysinit.target

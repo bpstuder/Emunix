@@ -5,6 +5,7 @@
 #                          writes the running slot to /run/emunix/active_slot for os-updater.
 #   emunix-slot next <a|b> make slot <a|b> the loader default (loader.conf) from now on.
 #   emunix-slot once <a|b> boot slot <a|b> on the next boot only, leaving the default alone.
+#   emunix-slot bad <a|b>  record that slot as the one whose boots did not complete; status shows it.
 #   emunix-slot active     just the running slot; emunix-etc-overlay keys /etc's upper directory
 #                          by this, so "which slot am I on" has one answer in the whole image.
 #
@@ -15,9 +16,12 @@ set -euo pipefail
 # Overridable so tests can work on a temporary directory instead of the real ESP and /run.
 ESP=${EMUNIX_ESP:-/boot}
 ACTIVE_SLOT_FILE=${EMUNIX_RUN_DIR:-/run/emunix}/active_slot
+# The bad-slot marker is shared with emunix-health, which writes it when it rolls back.
+STATE_DIR=${EMUNIX_STATE_DIR:-/var/lib/emunix}
+BAD_SLOT_FILE=$STATE_DIR/bad
 
 die() { echo "emunix-slot: $*" >&2; exit 1; }
-usage() { die "usage: emunix-slot status | next <a|b> | once <a|b>"; }
+usage() { die "usage: emunix-slot status | next <a|b> | once <a|b> | bad <a|b>"; }
 
 slot_of_root() {
   local root label slot
@@ -46,7 +50,7 @@ selectable() {
 }
 
 status() {
-  local slot default oneshot
+  local slot default oneshot bad
   slot=$(slot_of_root)
   [ -f "$ESP/loader/loader.conf" ] || die "$ESP/loader/loader.conf is missing: is the ESP mounted?"
   mkdir -p "$(dirname "$ACTIVE_SLOT_FILE")"
@@ -58,6 +62,10 @@ status() {
   echo "active: $slot"
   echo "default: ${default:-none}"
   echo "oneshot: ${oneshot:-none}"
+  # The marker is written by emunix-health's rollback and kept for diagnosis; it does not stop a
+  # future update from rewriting the slot.
+  bad=$(cat "$BAD_SLOT_FILE" 2>/dev/null || true)
+  echo "bad: ${bad:-none}"
 }
 
 next() {
@@ -82,6 +90,14 @@ once() {
   echo "oneshot: emunix-$slot.conf (slot $slot, next boot only)"
 }
 
+bad() {
+  local slot=${1:-}
+  case $slot in a|b) ;; *) usage ;; esac
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$slot" >"$BAD_SLOT_FILE"
+  echo "bad: slot $slot"
+}
+
 [ $# -ge 1 ] || usage
 cmd=$1
 shift
@@ -90,5 +106,6 @@ case $cmd in
   active) [ $# -eq 0 ] || usage; slot_of_root ;;
   next) [ $# -eq 1 ] || usage; next "$1" ;;
   once) [ $# -eq 1 ] || usage; once "$1" ;;
+  bad) [ $# -eq 1 ] || usage; bad "$1" ;;
   *) usage ;;
 esac

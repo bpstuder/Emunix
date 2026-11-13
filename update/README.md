@@ -97,6 +97,20 @@ The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a
 A failed run leaves the active slot untouched, so the device still boots. `--dry-run` prints the
 plan (version, url, target partition, bytes) and changes nothing.
 
+## If the new slot does not boot
+
+Every boot records an attempt in `/var/lib/emunix/boot-attempts`; a boot that reaches
+`multi-user.target` clears it again after 30 seconds. Two attempts in a row that never complete
+make `emunix-boot-health.service` fail, which starts `emunix-rollback.service`: the loader default
+goes back to the other slot, the failed one is marked bad (`emunix-slot status` reports
+`bad: <slot>`) and the device reboots into the working slot. The journal and
+`/var/log/emunix-update.log` both record the switch, so a device returned by a user can be
+diagnosed from that log.
+
+The health signal today is reaching `multi-user.target`; a slot that boots that far but never
+starts the frontend counts as healthy. A rollback that itself fails stops the boot and drops to
+the emergency shell instead of trying again on every power cycle.
+
 ## Rotating the key
 
 The trust anchor lives in the image, so rotation is an image release, not a setting:

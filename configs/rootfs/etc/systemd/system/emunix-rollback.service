@@ -1,0 +1,19 @@
+[Unit]
+Description=Emunix: abandon this root slot and reboot into the other one
+# Pulled in by OnFailure=, so it is not anchored to a target; the ordering it does need is the
+# ESP (loader.conf) and the counter on /var. DefaultDependencies=no for the same reason as the
+# attempt unit: sysinit.target may never complete on the boot this runs from.
+DefaultDependencies=no
+RequiresMountsFor=/boot /var/lib/emunix
+# Roll back before the emergency shell takes the console: the switch must be complete and its
+# reboot requested before anything else can tear the unit down.
+Before=emergency.service emergency.target
+# A failed rollback stops the boot instead of trying again on every power cycle.
+OnFailure=emunix-rescue.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/emunix-health rollback
+# The switch is printed on the console as well: a device that just rebooted itself should say why.
+StandardOutput=journal+console
+StandardError=journal+console

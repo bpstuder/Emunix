@@ -15,16 +15,17 @@ jobs:
             pacman -Sy --noconfirm shellcheck minisign >/dev/null &&
             shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
               configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
-              configs/rootfs/usr/local/bin/emunix-slot \
+              configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
               configs/rootfs/etc/skel/.bash_profile &&
             bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
               configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
-              configs/rootfs/usr/local/bin/emunix-slot \
+              configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
               configs/rootfs/etc/skel/.bash_profile &&
             bash tests/test-os-updater.sh &&
             bash tests/test-firstboot.sh &&
             bash tests/test-etc-overlay.sh &&
             bash tests/test-emunix-slot.sh &&
+            bash tests/test-emunix-health.sh &&
             bash tests/test-emunix-update.sh &&
             bash tests/test-session.sh"
       - name: Build image
@@ -67,6 +68,11 @@ jobs:
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs openssl python minisign >/dev/null &&
                      bash build/updater-test.sh out/emunix-*-x86_64.img evidence"
+      - name: Health test (two failed boots roll back, a normal boot does not)
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
+                     bash build/health-test.sh out/emunix-*-x86_64.img evidence"
       - name: Upload session evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -79,6 +85,7 @@ jobs:
             evidence/m0-etc-overlay.log
             evidence/m1-slot.log
             evidence/m2-updater.log
+            evidence/m2-health.log
       - name: Upload checksum
         # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7
