@@ -84,6 +84,11 @@ pacstrap "${PACARGS[@]}" -c "$MNT" "${PKGS[@]}"
 # --no-preserve=ownership because the build host's uid must not leak into the image.
 cp -a --no-preserve=ownership "$REPO/configs/rootfs/." "$MNT/"
 
+# The updater and its verification library live in build/ (they are developed and lint-tested
+# next to the other build scripts) and are installed into the image like any repo-owned file.
+install -D -m 0755 "$REPO/build/os-updater.sh" "$MNT/usr/local/bin/emunix-os-updater"
+install -D -m 0644 "$REPO/build/lib-update.sh" "$MNT/usr/local/lib/emunix/lib-update.sh"
+
 # pacstrap leaves /etc/pacman.conf out on purpose (the host's repos must not leak in silently), but
 # the image needs one: without it pacman, and the AUR build below, cannot run at all.
 cp /etc/pacman.conf "$MNT/etc/pacman.conf"
@@ -129,6 +134,8 @@ systemctl enable firstboot.service >/dev/null
 # /etc gets an overlay early in every boot: the root stays read-only and config written at runtime
 # (NetworkManager profiles, hostname) lands on /var instead.
 systemctl enable emunix-etc-overlay.service >/dev/null
+# The signed-update check runs daily on AC power.
+systemctl enable emunix-os-updater.timer >/dev/null
 
 # AUR packages (profiles/aur.txt): built here as an unprivileged user, then the toolchain that
 # built them is purged so the image ships no compiler.

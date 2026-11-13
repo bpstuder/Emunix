@@ -80,6 +80,23 @@ the absolute `image.url` inside the manifest:
 `build/sign-manifest.sh` writes the manifest and signature next to the image, so `<base>` is the
 release or Pages directory you publish from.
 
+## Applying an update
+
+The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a daily timer,
+`emunix-os-updater.timer`, that runs it on AC power. A run:
+
+1. reads the running slot from the root partition label (`emunix-slot active`) and refuses to
+   continue if it cannot be determined;
+2. fetches `emunix.json` and `emunix.json.minisig` from `EMUNIX_REPO_URL` and verifies the
+   signature and every field (`check_update`);
+3. downloads the image to `/var/cache/emunix/` with resume, checks free space first, and verifies
+   its sha256 and size;
+4. writes it to `/dev/disk/by-partlabel/rootfs_<inactive>`, runs `e2fsck -f`, and flips the loader
+   with `emunix-slot next <inactive>`.
+
+A failed run leaves the active slot untouched, so the device still boots. `--dry-run` prints the
+plan (version, url, target partition, bytes) and changes nothing.
+
 ## Rotating the key
 
 The trust anchor lives in the image, so rotation is an image release, not a setting:

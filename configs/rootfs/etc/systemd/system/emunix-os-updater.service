@@ -1,0 +1,15 @@
+[Unit]
+Description=Emunix: check for and stage a signed system update
+# Only on AC power: a download interrupted on battery must not leave a half-written slot.
+# ConditionACPower is systemd's own battery check (no online supply and a discharging battery
+# means on battery); a ConditionPathExists on an adapter path would only prove the device has an
+# adapter, not that it is plugged in.
+ConditionACPower=true
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/emunix-os-updater
+# The image is ~2.5 GiB; a slow link must not trip the default 90 s timeout.
+TimeoutStartSec=30min

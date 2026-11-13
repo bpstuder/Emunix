@@ -62,6 +62,11 @@ jobs:
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat e2fsprogs gptfdisk >/dev/null &&
                      bash build/slot-test.sh out/emunix-*-x86_64.img evidence"
+      - name: Updater test (signed v1 -> v2, then a corrupt image aborts)
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs openssl python minisign >/dev/null &&
+                     bash build/updater-test.sh out/emunix-*-x86_64.img evidence"
       - name: Upload session evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -73,6 +78,7 @@ jobs:
             evidence/m0-firstboot.log
             evidence/m0-etc-overlay.log
             evidence/m1-slot.log
+            evidence/m2-updater.log
       - name: Upload checksum
         # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7

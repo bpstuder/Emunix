@@ -57,6 +57,9 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   usr/local/bin/emunix-slot usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
   etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
   usr/bin/minisign etc/emunix/update.pub \
+  usr/local/bin/emunix-os-updater usr/local/lib/emunix/lib-update.sh \
+  etc/systemd/system/emunix-os-updater.service etc/systemd/system/emunix-os-updater.timer \
+  etc/systemd/system/timers.target.wants/emunix-os-updater.timer \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \
   etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do

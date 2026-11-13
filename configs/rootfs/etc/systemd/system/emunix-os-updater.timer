@@ -1,0 +1,11 @@
+[Unit]
+Description=Emunix: check for a system update daily
+
+[Timer]
+OnCalendar=daily
+# If the device was off at the scheduled time, run the check at the next boot.
+Persistent=true
+Unit=emunix-os-updater.service
+
+[Install]
+WantedBy=timers.target
