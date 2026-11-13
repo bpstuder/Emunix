@@ -175,6 +175,7 @@ state() { # <label>
   mount -o ro "${LOOP}p4" "$WORK/var"
   {
     echo "$1 counter: $(cat "$WORK/var/lib/emunix/boot-attempts" 2>/dev/null || echo missing)"
+    echo "$1 reached: $(cat "$WORK/var/lib/emunix/reached" 2>/dev/null || echo none)"
     echo "$1 bad: $(cat "$WORK/var/lib/emunix/bad" 2>/dev/null || echo none)"
     echo "$1 loader: $(tr '\n' ' ' <"$WORK/esp/loader/loader.conf")"
     echo "$1 update log:"

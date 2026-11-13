@@ -1,39 +1,39 @@
-image out/emunix-2026.11.11-x86_64.img, grown by 8G: last partition is 10483679 sectors before the first boot
-spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.qXuLZht51H/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.qXuLZht51H/OVMF_VARS.fd -drive file=/tmp/tmp.qXuLZht51H/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+image /tmp/emunix-out5/emunix-2026.11.13-x86_64.img, grown by 8G: last partition is 10483679 sectors before the first boot
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.jtEVtSogHS/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.jtEVtSogHS/OVMF_VARS.fd -drive file=/tmp/tmp.jtEVtSogHS/disk.img,format=raw,if=virtio -no-reboot -serial stdio
 [2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
 BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
  [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
-%Grootfs_a: clean, 62598/524288 files, 704703/2097152 blocks
+%Grootfs_a: clean, 62689/524288 files, 702107/2097152 blocks
 ********************** WARNING **********************
 *                                                   *
 *  The root device is not configured to be mounted  *
 *  read-write! It may be fsck'd again later.        *
 *                                                   *
 *****************************************************
-P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=4a6dd5dd945b489b9038b93c0709822d;user=root;hostname=emunix;machineid=5f1c0c5865264dbb874caca86ea20557;bootid=a864a55016724c4ea3a15a03498fdf91;pid=1;pidfdid=1;comm=systemd;type=boot\[    4.838311] emunix-firstboot[426]: CHANGED: partition=5 start=39847936 old: size=10483679 end=50331614 new: size=27258880 end=67106815
-[    4.875401] emunix-firstboot[415]: emunix-firstboot: grew /dev/vda5 into the free space
-[    4.890991] emunix-firstboot[475]: Resize device id 1 (/dev/vda5) from 5.00GiB to max
-[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=7a48d2c19a494019ba0d1683aedaccfe;user=root;hostname=emunix;machineid=5f1c0c5865264dbb874caca86ea20557;bootid=a864a55016724c4ea3a15a03498fdf91;pid=465;pidfdid=155;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=b66962a09db049648a82889d5d603bed;type=service\P+q6E616D65\
-Arch Linux 7.2.15-arch1-1 (ttyS0)
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=c703255c65c1433dbd1a5cd76727b928;user=root;hostname=emunix;machineid=d5752f3ff15c44799d7c360275c568fb;bootid=07f22e41cd944e8f8628231638f93043;pid=1;pidfdid=1;comm=systemd;type=boot\[    7.459431] emunix-firstboot[455]: CHANGED: partition=5 start=39847936 old: size=10483679 end=50331614 new: size=27258880 end=67106815
+[    7.496923] emunix-firstboot[444]: emunix-firstboot: grew /dev/vda5 into the free space
+[    7.532267] emunix-firstboot[504]: Resize device id 1 (/dev/vda5) from 5.00GiB to max
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=bf43abdca79e4ae08443f39707f47d90;user=root;hostname=emunix;machineid=d5752f3ff15c44799d7c360275c568fb;bootid=07f22e41cd944e8f8628231638f93043;pid=494;pidfdid=4190;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=47817a9038154831989fd754b36ff6bb;type=service\P+q6E616D65\
+Arch Linux 7.3.4-arch1-1 (ttyS0)
 
-emunix login: [   34.926643] emunix-firstboot[415]: emunix-firstboot: no answer in 30s: generated password for retrogamer: kZao5mkobV6A
-[   35.057483] emunix-firstboot[415]: emunix-firstboot: password for retrogamer replaced: the shipped one no longer authenticates
-[   35.064013] emunix-firstboot[415]: emunix-firstboot: first boot complete
-[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=7a48d2c19a494019ba0d1683aedaccfe\]3008;end=4a6dd5dd945b489b9038b93c0709822d\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   40.671057] reboot: Power down
+emunix login: [   37.574390] emunix-firstboot[444]: emunix-firstboot: no answer in 30s: generated password for retrogamer: inPdCLZZhmSG
+[   37.718272] emunix-firstboot[444]: emunix-firstboot: password for retrogamer replaced: the shipped one no longer authenticates
+[   37.724750] emunix-firstboot[444]: emunix-firstboot: first boot complete
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=bf43abdca79e4ae08443f]3008;end=c703255c65c1433dbd1a5cd76727b928\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   43.127493] reboot: Power down
 last partition after the first boot: 27258880 sectors
-spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.qXuLZht51H/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.qXuLZht51H/OVMF_VARS.fd -drive file=/tmp/tmp.qXuLZht51H/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -qmp unix:/tmp/tmp.jtEVtSogHS/qmp.sock,server,nowait -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.jtEVtSogHS/OVMF_VARS.fd -drive file=/tmp/tmp.jtEVtSogHS/disk.img,format=raw,if=virtio -no-reboot -serial stdio
 [2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
 BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
  [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
-%Grootfs_a: clean, 62598/524288 files, 704703/2097152 blocks
+%Grootfs_a: clean, 62689/524288 files, 702107/2097152 blocks
 ********************** WARNING **********************
 *                                                   *
 *  The root device is not configured to be mounted  *
 *  read-write! It may be fsck'd again later.        *
 *                                                   *
 *****************************************************
-P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=d3d599c29e284eed9d497d87ab678a52;user=root;hostname=emunix;machineid=5f1c0c5865264dbb874caca86ea20557;bootid=37dc6695c6b74b0099e14937de5ff852;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=68e89f9012014f16a2cf0b7e42988358;user=root;hostname=emunix;machineid=5f1c0c5865264dbb874caca86ea20557;bootid=37dc6695c6b74b0099e14937de5ff852;pid=435;pidfdid=12366;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=0ab5ec14c570452194d902777fd53ff4;type=service\P+q6E616D65\
-Arch Linux 7.2.15-arch1-1 (ttyS0)
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=292aceb8a87348549eb8efe563f7a276;user=root;hostname=emunix;machineid=d5752f3ff15c44799d7c360275c568fb;bootid=c1129b29dc9f437492bd47b9ae891d84;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=2cbe66c9b92c442eaecf42b007684a9a;user=root;hostname=emunix;machineid=d5752f3ff15c44799d7c360275c568fb;bootid=c1129b29dc9f437492bd47b9ae891d84;pid=459;pidfdid=99;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=92d119559fb042feb2afea276c7f5531;type=service\P+q6E616D65\
+Arch Linux 7.3.4-arch1-1 (ttyS0)
 
 emunix login: retrogamer
 Password: 
@@ -41,15 +41,15 @@ Login incorrect
 
 emunix login: retrogamer
 Password: 
-]3008;start=660e98fa659d404fbeefc6f230713fac;user=root;hostname=emunix;machineid=5f1c0c5865264dbb874caca86ea20557;bootid=37dc6695c6b74b0099e14937de5ff852;pid=435;pidfdid=12366;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=57248ddf-12ee-4b8d-86bb-917edeb89e85;type=shell;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo EMUNIX-FIRSTBOOT-EVIDENCE
-[?2004l]3008;start=903bb3de-4927-4737-adc6-805caa98aac5;type=command;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\EMUNIX-FIRSTBOOT-EVIDENCE
-]3008;end=903bb3de-4927-4737-adc6-805caa98aac5;exit=success\]3008;start=57248ddf-12ee-4b8d-86bb-917edeb89e85;type=shell;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "PASSWD-STATUS: $(passwd -S retrogamer)"; echo '--- firstboot unit on this boot:'; systemctl show -p ActiveState -p ConditionResult -p Result firstboot; journalctl -b -u firstboot --no-pager | tail -3; echo '--- disk:'; findmnt -no SOURCE,SIZE,TARGET /storage; df -h /storage | tail -1; echo '--- storage tree:'; ls -d /storage/*; ls /storage/roms | tr '\n' ' '; echo; stat -c '%U:%G %a %n' /storage /storage/roms/nes; touch /storage/roms/nes/.write-test && echo STORAGE-WRITABLE-AS-RETROGAMER && rm /storage/roms/nes/.write-test; echo '--- root fs:'; findmnt -no OPTIONS /; echo '--- the shipped password against pam_unix again (sudo):'; echo retrogamer | sudo -S -k id 2>&1; echo "SHIPPED-SUDO-RC=$?"; echo EMUNIX-FIRSTBOOT-EVIDENCE-A-END
-[?2004l]3008;start=53bd29c6-06c0-4f40-963a-6ccfe7131fdb;type=command;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\PASSWD-STATUS: retrogamer P 2026-11-11 -1 -1 -1 -1
+]3008;start=05f4f03b4810414fb7d552ec58f5264a;user=root;hostname=emunix;machineid=d5752f3ff15c44799d7c360275c568fb;bootid=c1129b29dc9f437492bd47b9ae891d84;pid=459;pidfdid=99;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=12a94565-984f-454b-9369-fd733eb9355d;type=shell;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo EMUNIX-FIRSTBOOT-EVIDENCE
+[?2004l]3008;start=c6bf5485-571c-4445-9b8f-775c0bf67aa8;type=command;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\EMUNIX-FIRSTBOOT-EVIDENCE
+]3008;end=c6bf5485-571c-4445-9b8f-775c0bf67aa8;exit=success\]3008;start=12a94565-984f-454b-9369-fd733eb9355d;type=shell;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo "PASSWD-STATUS: $(passwd -S retrogamer)"; echo '--- firstboot unit on this boot:'; systemctl show -p ActiveState -p ConditionResult -p Result firstboot; journalctl -b -u firstboot --no-pager | tail -3; echo '--- disk:'; findmnt -no SOURCE,SIZE,TARGET /storage; df -h /storage | tail -1; echo '--- storage tree:'; ls -d /storage/*; ls /storage/roms | tr '\n' ' '; echo; stat -c '%U:%G %a %n' /storage /storage/roms/nes; touch /storage/roms/nes/.write-test && echo STORAGE-WRITABLE-AS-RETROGAMER && rm /storage/roms/nes/.write-test; echo '--- root fs:'; findmnt -no OPTIONS /; echo '--- the shipped password against pam_unix again (sudo):'; echo retrogamer | sudo -S -k id 2>&1; echo "SHIPPED-SUDO-RC=$?"; echo EMUNIX-FIRSTBOOT-EVIDENCE-A-END
+[?2004l]3008;start=55bc6199-0f47-488f-a4a8-3bba0c431171;type=command;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\PASSWD-STATUS: retrogamer P 2026-11-13 -1 -1 -1 -1
 --- firstboot unit on this boot:
 ActiveState=inactive
 ConditionResult=no
 Result=success
-Nov 11 13:02:46 emunix systemd[1]: Emunix first boot (grow the disk, seed /storage, retire the shipped password) skipped, unmet condition check ConditionPathExists=!/var/lib/emunix/initialized
+Nov 13 22:23:19 emunix systemd[1]: Emunix first boot (grow the disk, seed /storage, retire the shipped password) skipped, unmet condition check ConditionPathExists=!/var/lib/emunix/initialized
 --- disk:
 /dev/vda5[/storage]   13G /storage
 /dev/vda5        13G  8.4M   13G   1% /storage
@@ -78,8 +78,8 @@ sudo: no password was provided
 sudo: 1 incorrect password attempt
 SHIPPED-SUDO-RC=1
 EMUNIX-FIRSTBOOT-EVIDENCE-A-END
-]3008;end=53bd29c6-06c0-4f40-963a-6ccfe7131fdb;exit=success\]3008;start=57248ddf-12ee-4b8d-86bb-917edeb89e85;type=shell;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo EMUNIX-FIRSTBOOT-EVIDENCE-END
-[?2004l]3008;start=b41d2e9b-b4f8-4d4a-a1ee-1e409b7b77b6;type=command;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\EMUNIX-FIRSTBOOT-EVIDENCE-END
-]3008;end=b41d2e9b-b4f8-4d4a-a1ee-1e409b7b77b6;exit=success\]3008;start=57248ddf-12ee-4b8d-86bb-917edeb89e85;type=shell;machineid=5f1c0c5865264dbb874caca86ea20557;user=retrogamer;hostname=emunix;bootid=37dc6695-c6b7-4b00-99e1-4937de5ff852;pid=524;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
+]3008;end=55bc6199-0f47-488f-a4a8-3bba0c431171;exit=success\]3008;start=12a94565-984f-454b-9369-fd733eb9355d;type=shell;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ echo EMUNIX-FIRSTBOOT-EVIDENCE-END
+[?2004l]3008;start=7081e2a0-9e9c-4605-9f77-c2e8c01ea017;type=command;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\EMUNIX-FIRSTBOOT-EVIDENCE-END
+]3008;end=7081e2a0-9e9c-4605-9f77-c2e8c01ea017;exit=success\]3008;start=12a94565-984f-454b-9369-fd733eb9355d;type=shell;machineid=d5752f3ff15c44799d7c360275c568fb;user=retrogamer;hostname=emunix;bootid=c1129b29-dc9f-4374-92bd-47b9ae891d84;pid=561;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ [?2004l[?2004h[?2004l
 [?2004h[?2004l
-]3008;end=660e98fa659d404fbeefc6f230713fac\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=68e89f9012014f16a2cf0]3008;end=d3d599c29e284eed9d497d87ab678a52\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   17.662491] reboot: Power down
+]3008;end=05f4f03b4810414fb7d552ec58f5264a\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=2cbe66c9b92c442eaecf4]3008;end=292aceb8a87348549eb8efe563f7a276\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   22.108530] reboot: Power down

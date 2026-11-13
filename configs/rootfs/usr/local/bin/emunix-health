@@ -1,13 +1,20 @@
 #!/bin/bash
-# Emunix: boot health. Every boot records an attempt in /var/lib/emunix/boot-attempts; a boot
-# that reaches multi-user.target clears it again after a settle window. Two attempts in a row
-# that never complete mean this slot does not boot, so the loader is pointed back at the other
-# root slot and the failed one is marked bad.
+# Emunix: boot health. Every boot opens an attempt; a boot that reaches multi-user.target is
+# remembered as having booted, and a boot that stays up clears the count after a settle window.
+# Boots that never reach multi-user are counted, and at the second one in a row the loader is
+# pointed back at the other root slot and the failed one is marked bad.
 #
-#   emunix-health begin      record this boot attempt (run before anything can fail)
+#   emunix-health begin      open this boot's attempt (run before anything can fail)
 #   emunix-health check      exit 1 when the attempts say this slot does not boot
-#   emunix-health clear      the boot completed; forget the attempts
+#   emunix-health reached    multi-user.target is up: this boot did boot
+#   emunix-health clear      the boot stayed up; forget the attempts
 #   emunix-health rollback   abandon this slot: clear the count, flip the loader, reboot
+#
+# The "reached" marker is what tells "the user powered off during boot" from "this slot does not
+# boot": a boot that got as far as multi-user.target counts as booted even if it was switched off
+# a moment later, so it does not put the next boot at risk of a rollback. The settle window before
+# the clear is the same distinction seen from the other side -- a boot that only reached
+# multi-user for a moment has not shown it can stay up.
 #
 # Started by the emunix-boot-*.service units. Runs as root (/var, the ESP and systemctl are
 # root-only). Every step also lands in /var/log/emunix-update.log, which survives a rollback.
@@ -15,6 +22,7 @@ set -euo pipefail
 
 STATE_DIR=${EMUNIX_STATE_DIR:-/var/lib/emunix}
 ATTEMPTS=$STATE_DIR/boot-attempts
+REACHED=$STATE_DIR/reached
 LOG_FILE=${EMUNIX_UPDATE_LOG:-/var/log/emunix-update.log}
 SLOT_BIN=${EMUNIX_SLOT_BIN:-/usr/local/bin/emunix-slot}
 REBOOT_BIN=${EMUNIX_REBOOT:-/usr/bin/systemctl}
@@ -30,9 +38,15 @@ log() {
   printf '%s emunix-health: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >>"$LOG_FILE" 2>/dev/null || true
 }
 
-# A missing or unreadable counter counts as zero: the first boot of a device must not look like
-# a repeated failure.
-count() {
+# Both files are written together and flushed: the counter exists to survive exactly the
+# power-off it watches for, so a boot that loses power seconds after the write must still count.
+store() { # <boot-attempts> <reached>
+  printf '%s\n' "$1" >"$ATTEMPTS" || die "cannot write $ATTEMPTS"
+  printf '%s\n' "$2" >"$REACHED" || die "cannot write $REACHED"
+  sync
+}
+
+read_attempts() {
   local n
   n=$(cat "$ATTEMPTS" 2>/dev/null || true)
   case $n in
@@ -41,42 +55,49 @@ count() {
   esac
 }
 
-# Every write is flushed: the counter exists to survive exactly the power-off it watches for, so
-# a boot that loses power seconds after the increment must still be counted.
-set_count() {
-  printf '%s\n' "$1" >"$ATTEMPTS" || die "cannot write $ATTEMPTS"
-  sync
-}
-
 begin() {
-  local n
+  local reached attempts
   mkdir -p "$STATE_DIR" || die "cannot create $STATE_DIR"
-  n=$(($(count) + 1))
-  set_count "$n"
-  log "boot attempt $n of $THRESHOLD"
-  printf 'boot attempt %s of %s\n' "$n" "$THRESHOLD"
+  reached=$(cat "$REACHED" 2>/dev/null || true)
+  attempts=$(read_attempts)
+  if [ "${reached:-0}" = 1 ]; then
+    # The previous boot reached multi-user: it booted, whatever happened after that, so this
+    # boot starts a fresh count instead of inheriting the old one.
+    attempts=1
+  else
+    attempts=$((attempts + 1))
+  fi
+  store "$attempts" 0
+  log "boot attempt $attempts of $THRESHOLD"
+  printf 'boot attempt %s of %s\n' "$attempts" "$THRESHOLD"
 }
 
 check() {
   local n
-  n=$(count)
+  n=$(read_attempts)
   [ "$n" -ge "$THRESHOLD" ] || return 0
-  log "attempt $n did not complete; rolling back to the previous slot"
-  printf 'emunix-health: attempt %s did not complete; rolling back\n' "$n" >&2
+  log "attempt $n did not reach multi-user; rolling back to the previous slot"
+  printf 'emunix-health: attempt %s did not reach multi-user; rolling back\n' "$n" >&2
   return 1
 }
 
+reached() {
+  store "$(read_attempts)" 1
+  log "multi-user.target reached"
+  printf 'multi-user.target reached\n'
+}
+
 clear_attempts() {
-  set_count 0
+  store 0 0
   log "boot completed; the attempt counter is clear"
   printf 'boot completed; attempt counter clear\n'
 }
 
 rollback() {
   local active previous
-  # The count goes first, and it is flushed: a rollback must never cascade into another one on the
-  # next boot, even if the reboot itself is not clean.
-  set_count 0
+  # A rollback must never cascade into another one on the next boot, even if the reboot itself
+  # is not clean.
+  store 0 0
   active=$("$SLOT_BIN" active) || die "cannot determine the running slot"
   case $active in
     a) previous=b ;;
@@ -96,13 +117,14 @@ rollback() {
   log "reboot requested"
 }
 
-[ $# -ge 1 ] || die "usage: emunix-health begin | check | clear | rollback"
+[ $# -ge 1 ] || die "usage: emunix-health begin | check | reached | clear | rollback"
 cmd=$1
 shift
 case $cmd in
   begin) [ $# -eq 0 ] || die "usage: emunix-health begin"; begin ;;
   check) [ $# -eq 0 ] || die "usage: emunix-health check"; check ;;
+  reached) [ $# -eq 0 ] || die "usage: emunix-health reached"; reached ;;
   clear) [ $# -eq 0 ] || die "usage: emunix-health clear"; clear_attempts ;;
   rollback) [ $# -eq 0 ] || die "usage: emunix-health rollback"; rollback ;;
-  *) die "usage: emunix-health begin | check | clear | rollback" ;;
+  *) die "usage: emunix-health begin | check | reached | clear | rollback" ;;
 esac

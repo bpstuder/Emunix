@@ -1,11 +1,13 @@
 [Unit]
-Description=Emunix: clear the boot-attempt counter after a healthy boot
+Description=Emunix: record that this boot reached multi-user, then clear the attempt counter
 After=multi-user.target
 
 [Service]
 Type=oneshot
-# The settle window is what separates "the user powered off during boot" from "this slot does
-# not boot": a boot that reached multi-user only briefly has not completed.
+# The marker is written as soon as multi-user.target is up, so a device that is switched off a
+# moment later still counts as having booted; the counter itself only clears after the settle
+# window below, which is what "stayed up" means.
+ExecStartPre=/usr/local/bin/emunix-health reached
 ExecStartPre=/bin/sleep 30
 ExecStart=/usr/local/bin/emunix-health clear
 
