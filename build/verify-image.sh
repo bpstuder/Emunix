@@ -56,6 +56,7 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
   usr/local/bin/emunix-slot usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
   etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
+  usr/bin/minisign etc/emunix/update.pub \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \
   etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do
@@ -70,6 +71,17 @@ grep -q 'ROMDirectory.*"/storage/roms"' "$MNT/etc/emulationstation/es_settings.x
 for f in usr/bin/gcc usr/bin/cmake usr/bin/make build etc/sudoers.d/20-aurbuilder root/aur.txt; do
   [ ! -e "$MNT/$f" ] || fail "/$f is build residue: the image ships a compiler"
 done
+
+# Update trust anchor: the image must carry BP's published public half byte for byte, and it must
+# parse as a minisign Ed25519 public key. An image without it can never verify an update.
+ANCHOR=$SCRIPT_DIR/../configs/rootfs/etc/emunix/update.pub
+[ -f "$ANCHOR" ] || fail "no update trust anchor at $ANCHOR (BP's public half is missing)"
+[ "$(sha256sum "$ANCHOR" | cut -d' ' -f1)" = "$(sha256sum "$MNT/etc/emunix/update.pub" | cut -d' ' -f1)" ] ||
+  fail "/etc/emunix/update.pub is not the repo's trust anchor ($ANCHOR)"
+[ "$(wc -l <"$MNT/etc/emunix/update.pub")" -eq 2 ] ||
+  fail "/etc/emunix/update.pub is not a two-line minisign public key"
+awk 'NR==2' "$MNT/etc/emunix/update.pub" | base64 -d | od -An -tx1 | grep -q '^ *45 64' ||
+  fail "/etc/emunix/update.pub is not a minisign Ed25519 public key"
 
 grep -q '^PARTLABEL=rootfs_a / *ext4 *ro' "$MNT/etc/fstab" || fail "fstab has no read-only rootfs_a root"
 grep -q '^PARTLABEL=var .* /var ' "$MNT/etc/fstab" || fail "fstab has no /var mount for the /etc overlay"

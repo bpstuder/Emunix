@@ -13,6 +13,7 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 - `configs/rootfs/` — files copied into the image root (ES-DE session, its units, the ES-DE seed)
 - `configs/` — partition layout
 - `evidence/` — boot transcripts and screenshots from the image tests
+- `update/` — the signed update manifest format, signing and signing-key custody
 - `.github/workflows/` — CI build pipeline
 
 ## Quick start (dev)

@@ -12,7 +12,7 @@ jobs:
       - name: Lint and unit-test
         run: |
           docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
-            pacman -Sy --noconfirm shellcheck >/dev/null &&
+            pacman -Sy --noconfirm shellcheck minisign >/dev/null &&
             shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
               configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
               configs/rootfs/usr/local/bin/emunix-slot \
@@ -25,6 +25,7 @@ jobs:
             bash tests/test-firstboot.sh &&
             bash tests/test-etc-overlay.sh &&
             bash tests/test-emunix-slot.sh &&
+            bash tests/test-emunix-update.sh &&
             bash tests/test-session.sh"
       - name: Build image
         run: |

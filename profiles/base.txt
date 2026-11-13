@@ -24,6 +24,7 @@ mangohud
 gamescope
 sudo
 polkit
+minisign                     # verifies the signed update manifest (update/README.md)
 
 # Emulation: one core per system, official repos only. The frontend (emulationstation-de) is
 # AUR-only and built from profiles/aur.txt; pcsx2 and standalone flycast are AUR-only too and
