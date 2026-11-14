@@ -60,6 +60,10 @@ button, and the volume keys (the N-Key device reports them as volume down/up; on
 both report volume down). Confirm on the device with `sudo evtest`: pick the N-Key device,
 press each button, and the printed keycode is the one in the table.
 
+Wiring: ES-DE opens its menu on the `Start` action (Escape on the keyboard by default), so
+`F16` is the natural menu trigger; `F17`/`F18` are for the TDP profile switch
+(card `t_88a807c2`). Map them in `~/ES-DE/es_input.cfg` and the TDP command.
+
 ## Quick start (dev)
 
 Requires an Arch host (or container) with `gptfdisk`, `dosfstools`, `btrfs-progs`, `e2fsprogs`
