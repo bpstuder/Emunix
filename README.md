@@ -16,6 +16,50 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 - `update/` — the signed update manifest format, signing and signing-key custody
 - `.github/workflows/` — CI build pipeline
 
+## Controllers
+
+Xbox, PlayStation and Nintendo pads work over USB and Bluetooth. `configs/udev/` tags them
+`uaccess` — never `MODE="0666"` — so the logged-in console user gets an ACL on the pad's
+`hidraw` and `event`/`js` nodes, and systemd-logind revokes it when the session ends. The
+same rules set `ID_INPUT_JOYSTICK`, which gives every pad a stable
+`/dev/input/by-id/<bus>-<serial>-joystick` name across reboots and event-number shuffles.
+
+`emunix-session` exports `SDL_JOYSTICK_DEVICE` with the pads ordered **most recently
+connected first**, so the pad you turned on last is player 1. SDL2/SDL3 enumerate in that
+order; a pad connected after the session started is appended by SDL's own hotplug detection.
+
+One mapping set is shared by ES-DE and the standalone emulators:
+`/usr/share/emunix/gamecontrollerdb.txt` (an SDL_GameControllerDB snapshot, zlib licence),
+pointed at by `SDL_GAMECONTROLLERCONFIG_FILE` in the `emunix-session` user unit. HIDAPI is
+left on (`SDL_JOYSTICK_HIDAPI=1`), which is what the DS4/DS5, Switch and Xbox One S/Series
+pads need; if a specific pad misbehaves under HIDAPI, set `SDL_JOYSTICK_HIDAPI=0` for the
+session. Refresh the database by re-downloading `gamecontrollerdb.txt` from
+<https://github.com/mdqinc/SDL_GameControllerDB>.
+
+RetroArch's default joypad driver is `udev`, which uses RetroArch's own autoconfig profiles
+rather than the SDL database. To make RetroArch use the shared set too, add
+`input_joypad_driver = "sdl2"` to `~/.config/retroarch/retroarch.cfg`.
+
+Bluetooth bonds live in `/var/lib/bluetooth` on the persistent `/var` partition, so a paired
+pad survives a reboot and an A/B slot switch.
+
+### ROG Ally buttons
+
+The Ally's front/back buttons are on a separate HID interface (`0b05:1abe`; Ally X
+`0b05:1b4c`). The kernel `hid-asus` driver maps them to unused F-keys:
+
+| Key | Button |
+| --- | --- |
+| `KEY_F15` | left back button |
+| `KEY_F16` | QAM / Armoury Crate button |
+| `KEY_F17` | ROG button, long-press |
+| `KEY_F18` | ROG button, long-press release |
+
+Firmware-reserved (they never reach Linux): the power button, the short press of the ROG
+button, and the volume keys (the N-Key device reports them as volume down/up; on some units
+both report volume down). Confirm on the device with `sudo evtest`: pick the N-Key device,
+press each button, and the printed keycode is the one in the table.
+
 ## Quick start (dev)
 
 Requires an Arch host (or container) with `gptfdisk`, `dosfstools`, `btrfs-progs`, `e2fsprogs`

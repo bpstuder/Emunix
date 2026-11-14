@@ -84,6 +84,10 @@ pacstrap "${PACARGS[@]}" -c "$MNT" "${PKGS[@]}"
 # --no-preserve=ownership because the build host's uid must not leak into the image.
 cp -a --no-preserve=ownership "$REPO/configs/rootfs/." "$MNT/"
 
+# udev rules live in their own tree (configs/udev) and are installed as drop-ins.
+install -d "$MNT/etc/udev/rules.d"
+install -m 0644 "$REPO"/configs/udev/*.rules "$MNT/etc/udev/rules.d/"
+
 # The updater and its verification library live in build/ (they are developed and lint-tested
 # next to the other build scripts) and are installed into the image like any repo-owned file.
 install -D -m 0755 "$REPO/build/os-updater.sh" "$MNT/usr/local/bin/emunix-os-updater"

@@ -62,7 +62,9 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/systemd/system/timers.target.wants/emunix-os-updater.timer \
   etc/systemd/system/getty@tty1.service.d/autologin.conf \
   etc/systemd/system/getty.target.wants/getty@tty1.service \
-  etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml; do
+  etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml \
+  etc/udev/rules.d/70-emunix-gamepads.rules etc/udev/rules.d/80-emunix-ally-buttons.rules \
+  usr/share/emunix/gamecontrollerdb.txt usr/local/bin/emunix-pad-order; do
   # -L too: the enabled unit is a symlink to an absolute path in the image, not in this host.
   [ -e "$MNT/$f" ] || [ -L "$MNT/$f" ] || fail "/$f missing from rootfs_a"
 done
@@ -70,6 +72,17 @@ grep -q -- '--autologin retrogamer' "$MNT/etc/systemd/system/getty@tty1.service.
   fail "tty1 autologin is not configured for retrogamer"
 grep -q 'ROMDirectory.*"/storage/roms"' "$MNT/etc/emulationstation/es_settings.xml" ||
   fail "es_settings.xml does not point ES-DE at /storage/roms"
+grep -q 'SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt' \
+  "$MNT/etc/systemd/user/emunix-session.service" ||
+  fail "the session unit does not point SDL at the shipped gamecontrollerdb"
+grep -q 'SDL_JOYSTICK_HIDAPI=1' "$MNT/etc/systemd/user/emunix-session.service" ||
+  fail "the session unit does not keep SDL HIDAPI on"
+[ "$(grep -c 'platform:Linux' "$MNT/usr/share/emunix/gamecontrollerdb.txt")" -gt 0 ] ||
+  fail "the shipped gamecontrollerdb has no Linux entries"
+if find "$MNT/etc/udev/rules.d" -name '*.rules' -print0 |
+   xargs -0 -r grep -h -v '^[[:space:]]*#' | grep -q 'MODE="0666"'; then
+  fail "a udev rule world-writes a device (MODE=\"0666\")"
+fi
 # The AUR build toolchain must not survive into the image.
 for f in usr/bin/gcc usr/bin/cmake usr/bin/make build etc/sudoers.d/20-aurbuilder root/aur.txt; do
   [ ! -e "$MNT/$f" ] || fail "/$f is build residue: the image ships a compiler"

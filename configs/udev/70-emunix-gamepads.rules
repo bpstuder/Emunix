@@ -1,0 +1,37 @@
+# Emunix controller access — Xbox / PlayStation / Nintendo pads.
+#
+# uaccess, never a world-writable mode: systemd-logind grants the active seat's user an ACL
+# on the device and revokes it when the seat ends. A world-readable input node
+# would let any local process read the pad (and inject into it) after logout.
+#
+# Two node families per pad:
+#   hidraw        — what SDL2/SDL3 HIDAPI opens. PS4/PS5, Switch and Xbox One S/
+#                   Series pads are on HIDAPI by default, so this is the node that
+#                   matters for them. HIDAPI is the default; set SDL_JOYSTICK_HIDAPI=0
+#                   in the session only if a specific pad misbehaves under it.
+#   event*/js*    — evdev and RetroArch's udev driver. ID_INPUT_JOYSTICK also makes
+#                   systemd's 60-persistent-input.rules create the stable
+#                   /dev/input/by-id/<bus>-<serial>-joystick symlink, so a pad keeps
+#                   its name across reboots and event-number shuffles.
+#
+# HID devices are named <bus>:<VID>:<PID>.<dev> (e.g. 0003:045E:02EA.0001), so the
+# hidraw rule matches the parent HID device and works for USB and Bluetooth alike;
+# hidraw has no id/vendor of its own, which is why ATTRS cannot be used there.
+
+# --- Microsoft Xbox (045e) -------------------------------------------------
+KERNEL=="hidraw*", KERNELS=="*045E:0285*|*045E:0287*|*045E:0289*|*045E:028E*|*045E:0291*|*045E:02A1*|*045E:02D1*|*045E:02DD*|*045E:02E0*|*045E:02E3*|*045E:02EA*|*045E:02FD*|*045E:02FF*|*045E:0719*|*045E:0B00*|*045E:0B05*|*045E:0B0A*|*045E:0B0C*|*045E:0B12*|*045E:0B13*|*045E:0B20*|*045E:0B22*", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="045e", ATTRS{id/product}=="0285|0287|0289|028e|0291|02a1|02d1|02dd|02e0|02e3|02ea|02fd|02ff|0719|0b00|0b05|0b0a|0b0c|0b12|0b13|0b20|0b22", TAG+="uaccess", ENV{ID_INPUT_JOYSTICK}="1"
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="045e", ATTRS{id/product}=="0285|0287|0289|028e|0291|02a1|02d1|02dd|02e0|02e3|02ea|02fd|02ff|0719|0b00|0b05|0b0a|0b0c|0b12|0b13|0b20|0b22", TAG+="uaccess"
+
+# --- Sony PlayStation (054c) ----------------------------------------------
+# DS3, DS4/DS4 Slim (+ wireless adapter), DualSense and DualSense Edge.
+KERNEL=="hidraw*", KERNELS=="*054C:0268*|*054C:05C4*|*054C:05C5*|*054C:09CC*|*054C:0BA0*|*054C:0CE6*|*054C:0DF2*", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="054c", ATTRS{id/product}=="0268|05c4|05c5|09cc|0ba0|0ce6|0df2", TAG+="uaccess", ENV{ID_INPUT_JOYSTICK}="1"
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="054c", ATTRS{id/product}=="0268|05c4|05c5|09cc|0ba0|0ce6|0df2", TAG+="uaccess"
+
+# --- Nintendo (057e) ------------------------------------------------------
+# Joy-Con (L/R), Pro Controller, NES/SNES/N64/Genesis controllers, GameCube
+# adapter and the Switch 2 Pro Controller.
+KERNEL=="hidraw*", KERNELS=="*057E:0337*|*057E:2006*|*057E:2007*|*057E:2009*|*057E:200E*|*057E:2017*|*057E:2019*|*057E:201E*|*057E:2069*|*057E:2073*", TAG+="uaccess"
+SUBSYSTEM=="input", KERNEL=="event*", ATTRS{id/vendor}=="057e", ATTRS{id/product}=="0337|2006|2007|2009|200e|2017|2019|201e|2069|2073", TAG+="uaccess", ENV{ID_INPUT_JOYSTICK}="1"
+SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="057e", ATTRS{id/product}=="0337|2006|2007|2009|200e|2017|2019|201e|2069|2073", TAG+="uaccess"

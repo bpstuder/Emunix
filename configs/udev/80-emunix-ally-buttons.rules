@@ -1,0 +1,22 @@
+# Emunix ROG Ally buttons.
+#
+# The Ally's extra buttons are not part of its XInput gamepad: they sit on a
+# separate USB HID interface (the "N-Key" device) that the kernel hid-asus
+# driver binds. Drivers/hid/hid-asus.c maps the usages to unused F-keys:
+#
+#   usage 0xa5 -> KEY_F15   left back button
+#   usage 0xa6 -> KEY_F16   QAM / Armoury Crate button
+#   usage 0xa7 -> KEY_F17   ROG button, long-press
+#   usage 0xa8 -> KEY_F18   ROG button, long-press release
+#
+# Firmware-reserved, do not plan around them: the power button and the short
+# press of the ROG button are consumed by the MCU before Linux sees them, and
+# the two volume keys are reported by the N-Key device as volume down/up (on
+# some units both report volume down). Only F15-F18 reach userspace.
+#
+# uaccess so the console session can read the keys; this is a keyboard, so
+# ID_INPUT_JOYSTICK is deliberately not set.
+
+# ROG Ally (0x0b05:0x1abe) and ROG Ally X (0x0b05:0x1b4c).
+SUBSYSTEM=="input", KERNEL=="event*|js*", ATTRS{id/vendor}=="0b05", ATTRS{id/product}=="1abe|1b4c", TAG+="uaccess"
+KERNEL=="hidraw*", KERNELS=="*0B05:1ABE*|*0B05:1B4C*", TAG+="uaccess"

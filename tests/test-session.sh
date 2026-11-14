@@ -18,7 +18,7 @@ run() { # <gamescope status> <es-de status> -> prints exit status, leaves calls 
   stub gamescope "$1"
   stub es-de "$2"
   set +e
-  HOME=$TMP PATH="$TMP:$PATH" "$SESSION" >"$TMP/out" 2>&1
+  HOME=$TMP PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" "$SESSION" >"$TMP/out" 2>&1
   echo $?
   set -e
 }
@@ -41,7 +41,7 @@ grep -q 'gamescope exited 1' "$TMP/out" || fail "the fallback is not explained i
 
 # The seed is copied once so later user edits survive image updates.
 mkdir -p "$TMP/home"
-HOME=$TMP/home PATH="$TMP:$PATH" "$SESSION" >/dev/null 2>&1 || true
+HOME=$TMP/home PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" "$SESSION" >/dev/null 2>&1 || true
 [ -f "$TMP/home/ES-DE/custom_systems/es_systems.xml" ] || [ -f "$TMP/home/ES-DE/settings/es_settings.xml" ] ||
   echo "note: no /etc/emulationstation seed on this host, copy step skipped"
 

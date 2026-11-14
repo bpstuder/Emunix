@@ -1,0 +1,46 @@
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -device virtio-input-host-pci,evdev=/dev/input/event12 -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.p4WDyPCvn6/OVMF_VARS.fd -drive file=/tmp/tmp.p4WDyPCvn6/disk.img,format=raw,if=virtio -snapshot -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x4,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x4,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 62694/524288 files, 702256/2097152 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=d924ca08c9e749b08ab25d96063d4689;user=root;hostname=emunix;machineid=d0eccd9c82134ba494dc40a4e897df5b;bootid=f2ad1643afa14ad786c2901a1a4b5daf;pid=1;pidfdid=1;comm=systemd;type=boot\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=1b7bbd90a2ec4f979c027cdcb0ab5da7;user=root;hostname=emunix;machineid=d0eccd9c82134ba494dc40a4e897df5b;bootid=f2ad1643afa14ad786c2901a1a4b5daf;pid=475;pidfdid=4232;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=18735762ce924550bce6b716903897d8;type=service\P+q6E616D65\
+Arch Linux 7.3.4-arch1-1 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=d73e92ac203d408f8fc864b4caadc3e5;user=root;hostname=emunix;machineid=d0eccd9c82134ba494dc40a4e897df5b;bootid=f2ad1643afa14ad786c2901a1a4b5daf;pid=475;pidfdid=4232;comm=login;targetuser=retrogamer;sessionid=3;type=session\]3008;start=fdc55a48-2d03-4223-87df-a615092fcba0;type=shell;machineid=d0eccd9c82134ba494dc40a4e897df5b;user=retrogamer;hostname=emunix;bootid=f2ad1643-afa1-4ad7-86c2-901a1a4b5daf;pid=590;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ bash /home/retrogamer/pads-probe.sh
+[?2004l]3008;start=0c88f668-ef98-428b-98d2-c665b7d74859;type=command;machineid=d0eccd9c82134ba494dc40a4e897df5b;user=retrogamer;hostname=emunix;bootid=f2ad1643-afa1-4ad7-86c2-901a1a4b5daf;pid=590;cwd=/home/retrogamer\PAD-UDEV
+DEV /sys/class/input/event2: Microsoft X-Box One S
+E: ID_INPUT_JOYSTICK=1
+E: TAGS=:seat:uaccess:
+PAD-BYID
+PAD-ENV
+Environment=SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt
+ SDL_JOYSTICK_HIDAPI=1
+PAD-ESDE
+Nov 14 15:56:04 Info:   Added controller with default configuration: "Microsoft Xbox One Controller" (GUID: 03008de65e040000ea02000000010000, serial number: n/a, instance ID: 0, device index: 0)
+PAD-EVIDENCE-END
+]3008;end=0c88f668-ef98-428b-98d2-c665b7d74859;exit=success\]3008;start=fdc55a48-2d03-4223-87df-a615092fcba0;type=shell;machineid=d0eccd9c82134ba494dc40a4e897df5b;user=retrogamer;hostname=emunix;bootid=f2ad1643-afa1-4ad7-86c2-901a1a4b5daf;pid=590;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ sudo poweroff
+[?2004l]3008;start=e97a7ca9-7762-4235-968c-8e370577340c;type=command;machineid=d0eccd9c82134ba494dc40a4e897df5b;user=retrogamer;hostname=emunix;bootid=f2ad1643-afa1-4ad7-86c2-901a1a4b5daf;pid=590;cwd=/home/retrogamer\
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+For security reasons, the password you type will not be visible.
+
+[sudo] password for retrogamer: 
+]3008;start=46b41a00c8174cb4b97a9f5dfc583db3;user=retrogamer;hostname=emunix;machineid=d0eccd9c82134ba494dc40a4e897df5b;bootid=f2ad1643afa14ad786c2901a1a4b5daf;pid=636;pidfdid=201;comm=sudo;targetuser=root;type=session\
+Broadcast message from root@emunix on pts/0 (Sat 2026-11-14 15:56:13 UTC):
+
+The system will power off now!
+
+]3008;end=46b41a00c8174cb4b97a9f5dfc583db3\]3008;end=d73e92ac203d408f8fc864b4caadc3e5\[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;end=1b7bbd90a2ec4f979c027cdcb0ab5da7\]3008;end=d924ca08c9e749b08ab25d96063d4689\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J[   23.335470] reboot: Power down

@@ -1,0 +1,154 @@
+# M3 — controller udev rules, gamecontrollerdb, ROG Ally buttons
+# Card: t_d3246149.  Date: 2026-11-14.  Host: porygon, archlinux dev container `emunix-dev`.
+# Image under test: emunix-2026.11.14-x86_64.img (built from the repo at this commit).
+#
+# Everything below is real command output from this session.  Commands were run in
+# `docker exec emunix-dev bash -c '...'` unless stated otherwise.
+
+## 1. udev rules — configs/udev/70-emunix-gamepads.rules, 80-emunix-ally-buttons.rules
+
+$ udevadm verify configs/udev/70-emunix-gamepads.rules configs/udev/80-emunix-ally-buttons.rules
+
+2 udev rules files have been checked.
+  Success: 2
+  Fail:    0
+
+# The shipped match expression really matches a 045e:02ea pad.  A copy of the rule
+# with one extra ENV line was loaded with `udevadm test --extra-rules-dir`:
+$ udevadm test --extra-rules-dir=/tmp/udevtest /sys/class/input/event12   # uinput "Microsoft X-Box One S", 045e:02ea
+  EMUNIX_PAD_RULE=matched
+
+# No rule world-writes an input device (the card's constraint):
+$ grep -v '^[[:space:]]*#' configs/udev/*.rules | grep 'MODE="0666"' ; echo rc=$?
+rc=1
+
+## 2. gamecontrollerdb — /usr/share/emunix/gamecontrollerdb.txt (SDL_GameControllerDB snapshot, zlib)
+
+# SDL2 (Arch sdl2-compat 2.32.74) with the env var unset vs set.  The shipped file
+# overrides SDL's compiled-in mapping for the same GUID:
+$ SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt listsdl
+--- built-in
+num=2
+0: name='Xbox One S Controller' ... gcname='Xbox One S Controller' mapping='...,Xbox One S Controller,a:b0,b:b1,x:b2,y:b3,back:b8,guide:b10,...'
+1: name='Wireless Controller'   ... gcname='PS4 Controller'      mapping='...,PS4 Controller,a:b1,b:b2,...,start:b9,x:b0,y:b3,platform:Linux,'
+--- shipped DB
+num=2
+0: name='Xbox One S Controller' ... gcname='Microsoft Xbox One Controller' mapping='...,Microsoft Xbox One Controller,a:b0,b:b1,back:b6,...,guide:b8,...,start:b7,...'
+1: name='Wireless Controller'   ... gcname='PS4 Controller'      mapping='...,PS4 Controller,a:b1,b:b2,...,start:b9,touchpad:b13,x:b0,y:b3,platform:Linux,'
+
+# The DB has 2295 lines / 748 platform:Linux entries and contains the DS4, Xbox One S
+# and Switch Pro GUIDs the exit criterion names:
+$ grep -c 'platform:Linux' configs/rootfs/usr/share/emunix/gamecontrollerdb.txt
+748
+$ grep -c '030000004c050000cc09' configs/rootfs/usr/share/emunix/gamecontrollerdb.txt   # DS4
+6
+$ grep -c '030000005e040000ea02' configs/rootfs/usr/share/emunix/gamecontrollerdb.txt   # Xbox One S
+9
+$ grep -c '030000007e0500000920' configs/rootfs/usr/share/emunix/gamecontrollerdb.txt   # Switch Pro
+6
+
+## 3. Player order — player 1 is the pad used last
+
+# SDL enumerates in SDL_JOYSTICK_DEVICE order.  Default (connection order) vs reversed:
+$ SDL_JOYSTICK_DEVICE=/dev/input/event13:/dev/input/event12 listsdl
+--- default order
+0: name='Xbox One S Controller' ...
+1: name='Wireless Controller' ...
+--- SDL_JOYSTICK_DEVICE=event13:event12
+0: name='Wireless Controller' ...
+1: name='Xbox One S Controller' ...
+
+# emunix-pad-order (configs/rootfs/usr/local/bin/emunix-pad-order) builds that list,
+# most-recently-connected first, and skips non-joystick event devices:
+$ emunix-pad-order <fixture-dev-input> <fixture-sys-class-input>
+fixture: event2+event10 are joysticks, event11 is not
+/tmp/tmp.g3JHBfSTNK/dev/input/event10:/tmp/tmp.g3JHBfSTNK/dev/input/event2
+
+## 4. End to end in the built image (QEMU + OVMF, synthetic pad via virtio-input-host)
+
+# Command (Xbox pad, host /dev/input/event12):
+$ bash build/pads-test.sh /tmp/emunix-out-m3/emunix-2026.11.14-x86_64.img /dev/input/event12 evidence
+# Guest output (evidence/m3-pads.log):
+PAD-UDEV
+DEV /sys/class/input/event2: Microsoft X-Box One S
+E: ID_INPUT_JOYSTICK=1
+E: TAGS=:seat:uaccess:
+PAD-BYID
+PAD-ENV
+Environment=SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt
+ SDL_JOYSTICK_HIDAPI=1
+PAD-ESDE
+Nov 14 15:56:04 Info:   Added controller with default configuration: "Microsoft Xbox One Controller" (GUID: 03008de65e040000ea02000000010000, serial number: n/a, instance ID: 0, device index: 0)
+PAD-EVIDENCE-END
+pads test: udev tags, session env and ES-DE detection OK
+
+# Same test with the DS4 pad (host /dev/input/event13), transcript evidence/m3-pads-ds4.log:
+PAD-UDEV
+DEV /sys/class/input/event2: Wireless Controller
+E: ID_INPUT_JOYSTICK=1
+E: TAGS=:uaccess:seat:
+PAD-ENV
+Environment=SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt
+ SDL_JOYSTICK_HIDAPI=1
+PAD-ESDE
+Nov 14 16:00:28 Info:   Added controller with default configuration: "PS4 Controller" (GUID: 03009b514c050000cc09000000010000, serial number: n/a, instance ID: 0, device index: 0)
+pads test: udev tags, session env and ES-DE detection OK
+
+# Full transcripts: evidence/m3-pads.log (Xbox) and evidence/m3-pads-ds4.log (DS4).
+
+## 5. Bluetooth bond survives a reboot
+
+# bluez's compiled-in bond directory is /var/lib/bluetooth:
+$ strings /usr/lib/bluetooth/bluetoothd | grep '^/var/lib/bluetooth'
+/var/lib/bluetooth
+# /var is its own btrfs partition in the image (build/build-image.sh fstab), so the
+# bond is not on the replaced rootfs slot.  No hardware run was done (see below).
+
+## 6. Build, image verification and unit tests
+
+$ bash build/build-image.sh
+Built /tmp/emunix-out-m3/emunix-2026.11.14-x86_64.img (24G apparent, 4.1G on disk)
+Version 2026.11.14, snapshot latest, device none
+BUILD_RC=0
+
+$ bash build/verify-image.sh /tmp/emunix-out-m3/emunix-2026.11.14-x86_64.img
+verified /tmp/emunix-out-m3/emunix-2026.11.14-x86_64.img: 5 labels, systemd-boot + 2 entries, kernel/initramfs, fstab + mounts, retrogamer, machine-id
+VERIFY_RC=0
+
+$ shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-* configs/rootfs/etc/skel/.bash_profile
+SHELLCHECK_RC=0
+$ bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-* configs/rootfs/etc/skel/.bash_profile
+BASHN_RC=0
+$ for t in tests/test-*.sh; do bash "$t"; done
+(all 8 test scripts pass, including the new tests/test-emunix-pads.sh)
+
+## What this evidence does NOT prove
+
+- No ROG Ally hardware was available on this host or the tailnet, so the literal exit
+  criterion ("On the Ally, a DS4 over BT and an Xbox pad over USB ...") was NOT run.
+  The QEMU runs use synthetic uinput pads with the right USB vendor/product, not the
+  physical pads, and not Bluetooth.  They prove the udev rules, the session env, the
+  SDL mapping set and ES-DE detection; they do not prove a real DS4/Xbox pad, real
+  Bluetooth pairing, or the Ally's own buttons.
+- The DS4 mapping is proven for the USB/HIDAPI path (the synthetic pad is USB).  A real
+  DS4 over Bluetooth uses the same HIDAPI driver but was not exercised.
+- `PAD-BYID` is empty in the QEMU runs: virtio-input-host gives the guest no USB/BT
+  parent, so systemd's 60-persistent-input.rules sets no ID_BUS and no by-id symlink.
+  The stable by-id name is expected on real USB/BT pads; it was not observed here.
+- No evtest output from the Ally exists: the F15-F18 table is taken from the kernel
+  hid-asus driver (drivers/hid/hid-asus.c, merged in 6.10), not measured on the device.
+  `sudo evtest` on the Ally is still the acceptance check for the button table.
+- The "player 1 is the pad used last" helper orders by connection recency (highest
+  event number first).  It was proven with a fixture and with SDL's enumeration order,
+  not with two physical pads on the Ally.
+- RetroArch was not exercised in the guest.  Its default joypad driver is `udev`, which
+  uses RetroArch's own autoconfig profiles, not the SDL database; the README documents
+  the one-line `input_joypad_driver = "sdl2"` switch.
+
+## Open questions (need BP)
+
+- Run the hardware acceptance on the Ally: `sudo evtest` for the F15-F18 table, pair the
+  DS4 over BT and the Xbox pad over USB, and confirm both appear in ES-DE and RetroArch
+  with the right faces.  A reboot confirms the Bluetooth bond.
+- Confirm whether the "player 1 is the pad used last" rule should mean last *connected*
+  (what is implemented) or last *button pressed* (would need an input watchdog).

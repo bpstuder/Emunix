@@ -1,0 +1,28 @@
+#!/bin/bash
+# Emunix: the SDL_JOYSTICK_DEVICE list — connected joystick event devices, most
+# recently connected first, so the pad used last is player 1.
+#
+# SDL2/SDL3 enumerate joysticks in the order of SDL_JOYSTICK_DEVICE and then by
+# event number. The kernel numbers event devices in probe order, so the highest
+# number is the pad that appeared last — the one in the user's hands. Without
+# this, the first-connected pad is always player 1.
+#
+# usage: emunix-pad-order [dev-input-dir] [sys-class-input-dir]
+# The two optional arguments are the real paths by default and exist so the
+# ordering can be unit-tested against a fixture.
+set -euo pipefail
+dev=${1:-/dev/input}
+sys=${2:-/sys/class/input}
+
+pads=()
+for ev in "$dev"/event*; do
+  [ -e "$ev" ] || continue
+  name=${ev##*/}
+  # A joystick event device has a js sibling under the same input device.
+  if ls -d "$sys/$name"/device/js* >/dev/null 2>&1; then
+    pads+=("$ev")
+  fi
+done
+[ "${#pads[@]}" -gt 0 ] || exit 0
+
+printf '%s\n' "${pads[@]}" | sort -V | tac | paste -sd: -

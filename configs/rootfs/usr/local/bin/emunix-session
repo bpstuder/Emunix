@@ -11,6 +11,12 @@ if [ ! -d "$HOME/ES-DE" ]; then
   cp /etc/emulationstation/es_systems.xml "$HOME/ES-DE/custom_systems/"
 fi
 
+# Player 1 is the pad used last: SDL enumerates joysticks in SDL_JOYSTICK_DEVICE
+# order, and emunix-pad-order lists the most recently connected pad first.
+if order=$(/usr/local/bin/emunix-pad-order); then
+  export SDL_JOYSTICK_DEVICE="$order"
+fi
+
 status=0
 printf 'emunix-session: starting es-de under gamescope\n'
 gamescope -f -- es-de || status=$?
