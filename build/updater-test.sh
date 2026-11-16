@@ -59,7 +59,8 @@ LOOP=$(attach_image "$WORK/base.img")
 mkdir -p "$WORK/a" "$WORK/v2root"
 mount -o ro "${LOOP}p2" "$WORK/a"
 V1=$(cat "$WORK/a/etc/emunix-version")
-V2=$(date -u -d "${V1//./-} + 1 day" +%Y.%m.%d)
+# The version is <year>.<month>.<patch>; bump the patch, not the day.
+V2=$(awk -F. '{printf "%s.%s.%d", $1, $2, $3 + 1}' <<<"$V1")
 cp -a "$WORK/a/." "$WORK/v2root/"
 umount "$WORK/a"
 losetup -d "$LOOP"
