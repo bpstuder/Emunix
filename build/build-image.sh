@@ -143,9 +143,8 @@ systemctl enable emunix-etc-overlay.service >/dev/null
 systemctl enable emunix-boot-attempt.service >/dev/null
 systemctl enable emunix-boot-health.service >/dev/null
 systemctl enable emunix-boot-clear.service >/dev/null
-# Power: asusd owns the platform profile (with its AC/battery curves) and emunix-tdp applies
-# the remembered profile at boot, clamping the package ceiling with ryzenadj.
-systemctl enable asusd.service >/dev/null
+# Power: emunix-tdp applies the remembered profile at boot, clamping the package ceiling
+# with ryzenadj. asusd needs no enabling: it is D-Bus activated by asusctl on first use.
 systemctl enable emunix-tdp.service >/dev/null
 # The signed-update check runs daily on AC power.
 systemctl enable emunix-os-updater.timer >/dev/null

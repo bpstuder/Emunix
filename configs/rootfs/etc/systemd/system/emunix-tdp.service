@@ -1,7 +1,6 @@
 [Unit]
 Description=Apply the Emunix TDP profile (quiet/balanced/performance)
-After=asusd.service
-Wants=asusd.service
+After=dbus.service
 
 [Service]
 Type=oneshot

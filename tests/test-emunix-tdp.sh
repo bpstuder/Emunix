@@ -50,7 +50,8 @@ done
 [ -x "$TDP" ] || fail "emunix-tdp is not executable"
 grep -qx 'ExecStart=/usr/local/bin/emunix-tdp' "$UNIT" || fail "the boot unit does not run emunix-tdp"
 grep -qx 'WantedBy=multi-user.target' "$UNIT" || fail "the boot unit is not enabled for multi-user"
-grep -qx 'Wants=asusd.service' "$UNIT" || fail "the boot unit does not order after asusd"
+grep -qx 'After=dbus.service' "$UNIT" ||
+  fail "the boot unit does not order after dbus (asusd is D-Bus activated)"
 
 # Exactly the three switch commands are granted, no wildcards.
 [ "$(grep -c 'NOPASSWD' "$SUDOERS")" -eq 3 ] || fail "the ES-DE grant must allow exactly three commands"

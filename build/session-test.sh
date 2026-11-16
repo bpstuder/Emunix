@@ -112,7 +112,7 @@ expect {
 }
 
 # 1. The session started by itself on tty1: nothing was typed into the VM before this point.
-send "export XDG_RUNTIME_DIR=/run/user/1000; for i in \$(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo EMUNIX-SESSION-STATE; systemctl --user is-active emunix-session; pgrep -a es-de; journalctl --user -b -u emunix-session --no-pager | tail -30; echo POWERMENU-COUNT \$(grep -c '<name>power</name>' /home/retrogamer/ES-DE/custom_systems/es_systems.xml) \$(ls /storage/roms/power 2>&1 | tr '\\n' ' '); echo EMUNIX-SESSION-STATE-END\r"
+send "export XDG_RUNTIME_DIR=/run/user/1000; for i in \$(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo EMUNIX-SESSION-STATE; systemctl --user is-active emunix-session; pgrep -a es-de; journalctl --user -b -u emunix-session --no-pager | tail -30; echo POWERMENU-COUNT \$(grep -c '<name>power</name>' /home/retrogamer/ES-DE/custom_systems/es_systems.xml); echo EMUNIX-SESSION-STATE-END\r"
 expect {
   -re {EMUNIX-SESSION-STATE-END} {}
   timeout { puts stderr "the ES-DE session never started"; exit 1 }
@@ -182,6 +182,10 @@ echo "expect exit: $RC"
 grep -q 'Launching game' "$LOG" || { echo "FAIL: the frontend never launched a game" >&2; exit 1; }
 grep -q 'Loading dynamic libretro core from: "/usr/lib/libretro/nestopia_libretro.so"' "$LOG" ||
   { echo "FAIL: the launch never reached the Nestopia core" >&2; exit 1; }
-grep -q 'POWERMENU-COUNT 1 balanced.sh performance.sh quiet.sh' "$LOG" ||
-  { echo "FAIL: the Power Profiles menu did not reach the running frontend" >&2; exit 1; }
+grep -q 'POWERMENU-COUNT 1' "$LOG" ||
+  { echo "FAIL: the power system is not in the ES-DE systems file" >&2; exit 1; }
+# Only the NES placeholder and the three Power Profiles scripts are on disk in this copy,
+# so a count of 4 means ES-DE scanned and listed all three switches.
+grep -q 'Total game count: 4' "$LOG" ||
+  { echo "FAIL: ES-DE did not list the three Power Profiles entries" >&2; exit 1; }
 echo "session test: ES-DE autostarted, launched the NES system, RetroArch loaded nestopia_libretro.so"

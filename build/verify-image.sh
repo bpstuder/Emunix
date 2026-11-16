@@ -70,8 +70,8 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/sudoers.d/30-emunix-tdp \
   usr/share/emunix/power-profiles/quiet.sh usr/share/emunix/power-profiles/balanced.sh \
   usr/share/emunix/power-profiles/performance.sh \
-  usr/bin/asusd etc/systemd/system/asusd.service \
-  etc/systemd/system/multi-user.target.wants/asusd.service \
+  usr/bin/asusd usr/lib/systemd/system/asusd.service \
+  usr/share/dbus-1/system.d/asusd.conf \
   usr/bin/ryzenadj; do
   # -L too: the enabled unit is a symlink to an absolute path in the image, not in this host.
   [ -e "$MNT/$f" ] || [ -L "$MNT/$f" ] || fail "/$f missing from rootfs_a"

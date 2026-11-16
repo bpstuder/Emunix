@@ -78,9 +78,10 @@ ceiling, which `asusctl` does not expose):
 | `balanced` | Balanced | Quiet | 15 W | 10 W |
 | `performance` | Performance | Balanced | 25 W | 15 W |
 
-Ceilings stay under the ~30 W sustained limit the Ally's embedded controller enforces, so a
-running profile is not silently rolled back mid-game. Only package power limits are set;
-no thermal limit (Tctl, skin temperature) is touched.
+Ceilings are kept below the ~30 W sustained package limit ROG Ally firmware is known to
+enforce on the Z1 Extreme, so a running profile should not be rolled back mid-game. The
+5-minute acceptance measurement is where any remaining rollback would show up. Only
+package power limits are set; no thermal limit (Tctl, skin temperature) is touched.
 
 Switch from the **Power Profiles** entry in ES-DE (three script entries seeded into
 `/storage/roms/power`), or run `sudo emunix-tdp quiet|balanced|performance`. The choice is

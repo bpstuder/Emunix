@@ -21,8 +21,9 @@ PROFILE_FILE=$STATE_DIR/tdp-profile
 POWER_SUPPLY_DIR=${EMUNIX_TDP_POWER_SUPPLY:-$PREFIX/sys/class/power_supply}
 
 # profile|asusctl on AC|asusctl on battery|mW on AC|mW on battery
-# Ceilings stay under the ~30 W sustained package limit the ROG Ally's embedded controller
-# is known to enforce, so a running profile is not silently rolled back after a few minutes.
+# Ceilings are kept below the ~30 W sustained package limit ROG Ally firmware is known to
+# enforce on the Z1 Extreme, so a running profile should not be silently rolled back after a
+# few minutes; the 5-minute acceptance load is what would expose a rollback.
 PROFILES=(
   'quiet|Quiet|Quiet|9000|8000'
   'balanced|Balanced|Quiet|15000|10000'
