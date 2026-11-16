@@ -71,9 +71,14 @@ done
 grep -qx '        <name>power</name>' "$SYSTEMS" || fail "es_systems.xml has no power system"
 grep -qx '        <path>%ROMPATH%/power</path>' "$SYSTEMS" || fail "the power system does not scan %ROMPATH%/power"
 
-# Packages: ryzenadj from the pinned AUR list, telemetry for the acceptance measurement, and
-# no power-profiles-daemon (it races asusd for the kernel platform_profile interface).
-grep -qE '^ryzenadj [0-9a-f]{40}$' "$REPO/profiles/aur.txt" || fail "profiles/aur.txt has no pinned ryzenadj"
+# Packages: ryzenadj from the [emunix] repo (packages/ryzenadj, pinned release tarball),
+# telemetry for the acceptance measurement, and no power-profiles-daemon (it races asusd
+# for the kernel platform_profile interface).
+grep -q '^pkgname=ryzenadj$' "$REPO/packages/ryzenadj/PKGBUILD" || fail "packages/ryzenadj is missing"
+grep -qF "archive/refs/tags/v\${pkgver}.tar.gz" "$REPO/packages/ryzenadj/PKGBUILD" ||
+  fail "packages/ryzenadj does not pin an upstream release tarball"
+grep -qE "^sha256sums=\('[0-9a-f]{64}'\)$" "$REPO/packages/ryzenadj/PKGBUILD" ||
+  fail "packages/ryzenadj has no pinned sha256"
 grep -q '^lm_sensors' "$REPO/profiles/handheld-common.txt" || fail "lm_sensors is not in the handheld package list"
 grep -q '^power-profiles-daemon' "$REPO/profiles/handheld-common.txt" &&
   fail "power-profiles-daemon races asusd for platform_profile and must not ship" || true

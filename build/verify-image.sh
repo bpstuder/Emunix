@@ -57,6 +57,7 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   usr/local/bin/emunix-slot usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
   etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
   usr/bin/minisign etc/emunix/update.pub \
+  usr/share/pacman/keyrings/emunix.gpg usr/share/pacman/keyrings/emunix-trusted \
   usr/local/bin/emunix-os-updater usr/local/lib/emunix/lib-update.sh \
   etc/systemd/system/emunix-os-updater.service etc/systemd/system/emunix-os-updater.timer \
   etc/systemd/system/timers.target.wants/emunix-os-updater.timer \
@@ -113,6 +114,19 @@ ANCHOR=$SCRIPT_DIR/../configs/rootfs/etc/emunix/update.pub
   fail "/etc/emunix/update.pub is not a two-line minisign public key"
 awk 'NR==2' "$MNT/etc/emunix/update.pub" | base64 -d | od -An -tx1 | grep -q '^ *45 64' ||
   fail "/etc/emunix/update.pub is not a minisign Ed25519 public key"
+
+# [emunix] repo: the image trusts BP's committed public half and configures the repository
+# with signature checking required, so an unsigned or foreign-signed repo cannot install.
+grep -q '^\[emunix\]' "$MNT/etc/pacman.conf" || fail "pacman.conf has no [emunix] stanza"
+grep -q '^SigLevel = Required DatabaseRequired$' "$MNT/etc/pacman.conf" ||
+  fail "the [emunix] stanza does not require signatures"
+awk '/^\[emunix\]/ {inrepo=1; next} /^\[/ {inrepo=0} inrepo && /^Server = / {found=1} END {exit !found}' \
+  "$MNT/etc/pacman.conf" || fail "the [emunix] stanza has no Server line"
+[ "$(sha256sum "$MNT/usr/share/pacman/keyrings/emunix.gpg" | cut -d' ' -f1)" = \
+  "$(sha256sum "$SCRIPT_DIR/../packages/emunix-keyring/emunix.gpg" | cut -d' ' -f1)" ] ||
+  fail "/usr/share/pacman/keyrings/emunix.gpg is not the committed public half"
+[ "$(grep -c '^\[emunix\]' "$MNT/etc/pacman.conf")" -eq 1 ] ||
+  fail "pacman.conf does not have exactly one [emunix] stanza"
 
 grep -q '^PARTLABEL=rootfs_a / *ext4 *ro' "$MNT/etc/fstab" || fail "fstab has no read-only rootfs_a root"
 grep -q '^PARTLABEL=var .* /var ' "$MNT/etc/fstab" || fail "fstab has no /var mount for the /etc overlay"

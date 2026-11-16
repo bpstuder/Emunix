@@ -1,0 +1,19 @@
+# Emunix pacman repository keyring: the public half of BP's repo signing key and the
+# [emunix] stanza. The private half never enters this repository (repo/README.md).
+pkgname=emunix-keyring
+pkgver=1.0
+pkgrel=1
+pkgdesc="Emunix pacman repository keyring and [emunix] stanza"
+arch=('any')
+url="https://github.com/bpstuder/Emunix"
+license=('MIT')
+depends=('pacman' 'gnupg')
+install=emunix-keyring.install
+source=('emunix.gpg' 'emunix-trusted' 'emunix.conf')
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -Dm644 "$srcdir/emunix.gpg" "$pkgdir/usr/share/pacman/keyrings/emunix.gpg"
+  install -Dm644 "$srcdir/emunix-trusted" "$pkgdir/usr/share/pacman/keyrings/emunix-trusted"
+  install -Dm644 "$srcdir/emunix.conf" "$pkgdir/etc/pacman.conf.d/emunix.conf"
+}

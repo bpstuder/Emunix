@@ -14,7 +14,7 @@ emulationstation-de 49541b7e279060da1868de81a97135a51ef89aaf
 #
 # ryzenadj - the package-power ceiling (STAPM/PPT) behind the three TDP profiles
 #            (configs/rootfs/usr/local/bin/emunix-tdp); asusctl does not expose watts.
-ryzenadj 3534651beaca51f5a9ebb5502167e9d003d3dcb0
+#            Now built from packages/ryzenadj and installed from [emunix] (card 13).
 #
 # Not here, deliberately:
 #   pcsx2   - AUR-only, and its own depends (kddockwidgets, rapidyaml) are AUR-only too: a

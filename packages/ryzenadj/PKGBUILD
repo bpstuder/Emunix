@@ -1,0 +1,29 @@
+# ryzenadj, pinned to the upstream release tarball. Mirrors the AUR package of the same
+# name; it lives here so the image build installs it from [emunix] instead of building
+# it from AUR (profiles/aur.txt).
+pkgname=ryzenadj
+pkgver=0.19.0
+pkgrel=1
+pkgdesc="RyzenAdj tool for adjusting Ryzen Mobile power states"
+url="https://github.com/FlyGoat/RyzenAdj"
+arch=('x86_64')
+depends=('pciutils')
+makedepends=('cmake')
+options=('!debug')
+license=('LGPL3')
+source=("ryzenadj-${pkgver}.tar.gz::${url}/archive/refs/tags/v${pkgver}.tar.gz")
+sha256sums=('d1998b6c2d1b564f5d43c786cbf764ca9a1d8bb213e2001f98f611ead3087c7e')
+
+build() {
+	cmake -B build -S "${srcdir}/RyzenAdj-${pkgver}" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX='/usr' \
+		-Wno-dev
+	cmake --build build
+}
+
+package() {
+	DESTDIR="${pkgdir}" cmake --install build
+	install -Dsm 744 build/libryzenadj.so "${pkgdir}/usr/lib/libryzenadj.so"
+	install -Dm 744 "${srcdir}/RyzenAdj-${pkgver}/lib/ryzenadj.h" "${pkgdir}/usr/include/ryzenadj.h"
+}

@@ -1,0 +1,11 @@
+post_install() {
+	# The stanza ships as a conf.d file so pacman.conf can Include it; append it for
+	# installs whose pacman.conf has no Include = /etc/pacman.conf.d/*.conf.
+	if [ -f /etc/pacman.conf ] && ! grep -q '^\[emunix\]' /etc/pacman.conf; then
+		cat /etc/pacman.conf.d/emunix.conf >> /etc/pacman.conf
+	fi
+}
+
+post_upgrade() {
+	post_install
+}

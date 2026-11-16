@@ -97,6 +97,25 @@ install -D -m 0644 "$REPO/build/lib-update.sh" "$MNT/usr/local/lib/emunix/lib-up
 # the image needs one: without it pacman, and the AUR build below, cannot run at all.
 cp /etc/pacman.conf "$MNT/etc/pacman.conf"
 
+# [emunix] repo: the image build installs the keyring and ryzenadj from it with signature
+# checking on. The public half is committed; the private half never enters the image.
+# EMUNIX_REPO_URL is the published Pages URL; a file:// URL is bind-mounted so a local
+# repository can be used (tests, mirrors).
+REPO_URL=${EMUNIX_REPO_URL:-https://bpstuder.github.io/Emunix/}
+case "$REPO_URL" in
+  file:///*)
+    REPO_LOCAL=${REPO_URL#file://}
+    [ -d "$REPO_LOCAL" ] || { echo "EMUNIX_REPO_URL: $REPO_LOCAL is not a directory" >&2; exit 1; }
+    install -d -m 0755 "$MNT/var/cache/emunix-repo"
+    mount --bind "$REPO_LOCAL" "$MNT/var/cache/emunix-repo"
+    REPO_URL=file:///var/cache/emunix-repo
+    ;;
+esac
+export REPO_URL
+install -d -m 0755 "$MNT/root/emunix-keyring"
+install -m 0644 "$REPO/packages/emunix-keyring/emunix.gpg" "$MNT/root/emunix-keyring/emunix.gpg"
+install -m 0644 "$REPO/packages/emunix-keyring/emunix-trusted" "$MNT/root/emunix-keyring/emunix-trusted"
+
 # 2c. AUR list for the chroot step: comment-stripped, so the chroot only parses "<name> <commit>".
 sed 's/#.*//' "$REPO/profiles/aur.txt" | { grep -v '^[[:space:]]*$' || true; } >"$WORK/aur.txt"
 # staging dir: arch-chroot mounts a tmpfs over /tmp, which would hide a file put there.
@@ -148,6 +167,21 @@ systemctl enable emunix-boot-clear.service >/dev/null
 systemctl enable emunix-tdp.service >/dev/null
 # The signed-update check runs daily on AC power.
 systemctl enable emunix-os-updater.timer >/dev/null
+
+# [emunix] repo: trust the committed public half, add the stanza, then install the keyring
+# and ryzenadj from it. SigLevel is Required DatabaseRequired, so an unsigned or
+# foreign-signed repository fails the build instead of shipping.
+pacman-key --init >/dev/null
+pacman-key --add /root/emunix-keyring/emunix.gpg >/dev/null
+EMUNIX_FPR=$(awk -F: '/^[^#]/ {print $1; exit}' /root/emunix-keyring/emunix-trusted)
+pacman-key --lsign-key "$EMUNIX_FPR" >/dev/null
+rm -rf /root/emunix-keyring
+grep -q '^\[emunix\]' /etc/pacman.conf ||
+  printf '\n[emunix]\nServer = %s\nSigLevel = Required DatabaseRequired\n' "$REPO_URL" >>/etc/pacman.conf
+pacman -Sy --noconfirm >/dev/null
+pacman -S --noconfirm emunix-keyring ryzenadj >/dev/null
+pacman-key --list-keys "$EMUNIX_FPR" >/dev/null ||
+  { echo "pacman-key does not list the emunix key" >&2; exit 1; }
 
 # AUR packages (profiles/aur.txt): built here as an unprivileged user, then the toolchain that
 # built them is purged so the image ships no compiler.

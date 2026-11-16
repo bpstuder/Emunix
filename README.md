@@ -10,6 +10,10 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 - `build/` — image assembly (sgdisk + pacstrap + arch-chroot), AUR build, image and session boot tests
 - `profiles/` — base, handheld-common and per-device package lists (`DEVICE=rog-ally`);
   `aur.txt` holds the AUR packages built in the chroot, pinned by commit
+- `packages/` — PKGBUILDs for the `[emunix]` pacman repository (the keyring, `ryzenadj`, …),
+  built by `build/repo.sh` and served from GitHub Pages
+- `repo/` — the `[emunix]` repository: signing-key custody, publishing, and why it is for
+  image builds only
 - `configs/rootfs/` — files copied into the image root (ES-DE session, its units, the ES-DE seed)
 - `configs/` — partition layout
 - `evidence/` — boot transcripts and screenshots from the image tests
@@ -114,3 +118,12 @@ sudo ./build/slot-test.sh out/emunix-*-x86_64.img  # four boots: next/once and t
 ```
 
 Output lands in `out/` (a 24 GiB GPT disk image, sparse on disk; override with `TOTAL_SIZE`).
+
+## The `[emunix]` repository
+
+Packages that the official repositories do not carry are built from `packages/` into a signed
+pacman repository on GitHub Pages (`https://bpstuder.github.io/Emunix/`) by
+`build/repo.sh`; the image build installs `emunix-keyring` and `ryzenadj` from it with
+signature checking on. The private signing key is BP's and never enters the repository or the
+image. The repository is for **image builds**: the read-only root cannot install packages at
+runtime, so a running device gets them from a new image. See `repo/README.md`.
