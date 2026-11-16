@@ -1,0 +1,117 @@
+09:31:11 host 16 threads, ryzenadj v0.19.0, SMU fallback /dev/mem
+09:31:11 defaults: | STAPM LIMIT | 54.000 | stapm-limit | | PPT LIMIT FAST | 54.000 | fast-limit | | PPT LIMIT SLOW | 54.000 | slow-limit | 
+09:31:11 apply quiet at 8000mW (emunix-tdp battery side)
+no compatible ryzen_smu kernel module found, fallback to /dev/mem
+Successfully set stapm_limit to 8000
+Successfully set fast_limit to 8000
+Successfully set slow_limit to 8000
+09:31:26 sample quiet stapm=7.970W fast=8.240W slow=7.963W tctl=60.018C limits=8.000/8.000
+09:31:37 sample quiet stapm=7.976W fast=8.212W slow=8.108W tctl=60.097C limits=8.000/8.000
+09:31:48 sample quiet stapm=7.981W fast=8.254W slow=8.171W tctl=59.858C limits=8.000/8.000
+09:31:58 sample quiet stapm=7.985W fast=8.212W slow=8.118W tctl=59.618C limits=8.000/8.000
+09:32:09 sample quiet stapm=7.986W fast=7.977W slow=8.054W tctl=59.737C limits=8.000/8.000
+09:32:19 sample quiet stapm=7.988W fast=8.174W slow=8.094W tctl=59.826C limits=8.000/8.000
+09:32:30 sample quiet stapm=7.991W fast=7.967W slow=8.073W tctl=59.349C limits=8.000/8.000
+09:32:40 sample quiet stapm=7.990W fast=8.003W slow=8.009W tctl=59.089C limits=8.000/8.000
+09:32:51 sample quiet stapm=7.993W fast=8.193W slow=8.115W tctl=59.273C limits=8.000/8.000
+09:33:01 sample quiet stapm=7.993W fast=8.063W slow=8.046W tctl=59.522C limits=8.000/8.000
+09:33:12 sample quiet stapm=7.993W fast=8.197W slow=8.022W tctl=58.875C limits=8.000/8.000
+09:33:22 sample quiet stapm=7.993W fast=7.970W slow=8.048W tctl=59.182C limits=8.000/8.000
+09:33:33 sample quiet stapm=7.993W fast=8.053W slow=8.047W tctl=58.860C limits=8.000/8.000
+09:33:43 sample quiet stapm=7.993W fast=7.971W slow=8.043W tctl=58.917C limits=8.000/8.000
+09:33:54 sample quiet stapm=7.993W fast=7.954W slow=8.049W tctl=58.922C limits=8.000/8.000
+09:34:04 sample quiet stapm=7.995W fast=8.229W slow=8.102W tctl=58.877C limits=8.000/8.000
+09:34:15 sample quiet stapm=7.996W fast=8.160W slow=8.061W tctl=59.179C limits=8.000/8.000
+09:34:25 sample quiet stapm=7.996W fast=7.987W slow=8.035W tctl=58.742C limits=8.000/8.000
+09:34:36 sample quiet stapm=7.998W fast=8.123W slow=8.095W tctl=58.871C limits=8.000/8.000
+09:34:46 sample quiet stapm=7.999W fast=8.184W slow=8.095W tctl=58.916C limits=8.000/8.000
+09:34:57 sample quiet stapm=7.999W fast=7.966W slow=8.046W tctl=58.876C limits=8.000/8.000
+09:35:08 sample quiet stapm=7.999W fast=8.057W slow=8.077W tctl=58.943C limits=8.000/8.000
+09:35:18 sample quiet stapm=8.000W fast=8.053W slow=8.093W tctl=58.743C limits=8.000/8.000
+09:35:28 sample quiet stapm=8.000W fast=8.061W slow=8.080W tctl=58.945C limits=8.000/8.000
+09:35:39 sample quiet stapm=8.000W fast=8.008W slow=8.059W tctl=58.803C limits=8.000/8.000
+09:35:50 sample quiet stapm=8.002W fast=8.052W slow=8.112W tctl=58.750C limits=8.000/8.000
+09:36:00 sample quiet stapm=8.001W fast=8.045W slow=8.074W tctl=58.959C limits=8.000/8.000
+09:36:10 sample quiet stapm=8.000W fast=8.013W slow=8.063W tctl=59.016C limits=8.000/8.000
+09:36:21 sample quiet stapm=7.998W fast=7.876W slow=8.035W tctl=58.901C limits=8.000/8.000
+09:36:31 sample quiet stapm=7.996W fast=8.107W slow=8.011W tctl=58.589C limits=8.000/8.000
+09:36:46 sample quiet-final stapm=7.908W fast=7.074W slow=6.468W tctl=59.100C limits=8.000/8.000
+09:36:46 apply balanced at 10000mW (emunix-tdp battery side)
+no compatible ryzen_smu kernel module found, fallback to /dev/mem
+Successfully set stapm_limit to 10000
+Successfully set fast_limit to 10000
+Successfully set slow_limit to 10000
+09:37:02 sample balanced stapm=7.955W fast=10.039W slow=9.532W tctl=59.894C limits=10.000/10.000
+09:37:12 sample balanced stapm=8.022W fast=9.946W slow=9.941W tctl=60.154C limits=10.000/10.000
+09:37:22 sample balanced stapm=8.088W fast=10.052W slow=9.994W tctl=60.496C limits=10.000/10.000
+09:37:32 sample balanced stapm=8.153W fast=10.044W slow=10.000W tctl=60.359C limits=10.000/10.000
+09:37:42 sample balanced stapm=8.209W fast=10.056W slow=10.001W tctl=60.976C limits=10.000/10.000
+09:37:53 sample balanced stapm=8.266W fast=10.061W slow=10.002W tctl=60.793C limits=10.000/10.000
+09:38:03 sample balanced stapm=8.322W fast=10.044W slow=10.002W tctl=61.266C limits=10.000/10.000
+09:38:13 sample balanced stapm=8.378W fast=10.048W slow=10.002W tctl=61.512C limits=10.000/10.000
+09:38:23 sample balanced stapm=8.434W fast=10.037W slow=10.003W tctl=61.415C limits=10.000/10.000
+09:38:33 sample balanced stapm=8.480W fast=10.045W slow=10.002W tctl=61.468C limits=10.000/10.000
+09:38:44 sample balanced stapm=8.527W fast=9.984W slow=10.003W tctl=61.607C limits=10.000/10.000
+09:38:54 sample balanced stapm=8.574W fast=10.008W slow=10.003W tctl=61.367C limits=10.000/10.000
+09:39:04 sample balanced stapm=8.621W fast=9.962W slow=10.002W tctl=61.000C limits=10.000/10.000
+09:39:14 sample balanced stapm=8.668W fast=10.082W slow=10.003W tctl=61.241C limits=10.000/10.000
+09:39:24 sample balanced stapm=8.715W fast=10.011W slow=10.002W tctl=61.396C limits=10.000/10.000
+09:39:34 sample balanced stapm=8.752W fast=9.987W slow=10.003W tctl=61.464C limits=10.000/10.000
+09:39:45 sample balanced stapm=8.790W fast=10.178W slow=10.002W tctl=61.817C limits=10.000/10.000
+09:39:55 sample balanced stapm=8.827W fast=10.092W slow=10.002W tctl=61.374C limits=10.000/10.000
+09:40:05 sample balanced stapm=8.864W fast=10.089W slow=9.996W tctl=61.680C limits=10.000/10.000
+09:40:15 sample balanced stapm=8.901W fast=10.016W slow=10.004W tctl=61.637C limits=10.000/10.000
+09:40:25 sample balanced stapm=8.939W fast=10.016W slow=10.004W tctl=61.687C limits=10.000/10.000
+09:40:36 sample balanced stapm=8.976W fast=10.123W slow=9.999W tctl=61.745C limits=10.000/10.000
+09:40:46 sample balanced stapm=9.010W fast=9.936W slow=10.002W tctl=61.802C limits=10.000/10.000
+09:40:56 sample balanced stapm=9.038W fast=10.021W slow=10.003W tctl=61.957C limits=10.000/10.000
+09:41:06 sample balanced stapm=9.066W fast=10.120W slow=10.002W tctl=61.750C limits=10.000/10.000
+09:41:16 sample balanced stapm=9.093W fast=10.398W slow=9.997W tctl=62.043C limits=10.000/10.000
+09:41:27 sample balanced stapm=9.121W fast=10.001W slow=9.998W tctl=61.683C limits=10.000/10.000
+09:41:37 sample balanced stapm=9.148W fast=10.056W slow=9.999W tctl=61.841C limits=10.000/10.000
+09:41:47 sample balanced stapm=9.175W fast=10.237W slow=9.996W tctl=61.435C limits=10.000/10.000
+09:41:57 sample balanced stapm=9.203W fast=10.141W slow=10.000W tctl=61.653C limits=10.000/10.000
+09:42:12 sample balanced-final stapm=9.059W fast=11.215W slow=6.478W tctl=66.866C limits=10.000/10.000
+09:42:12 apply performance at 15000mW (emunix-tdp battery side)
+no compatible ryzen_smu kernel module found, fallback to /dev/mem
+Successfully set stapm_limit to 15000
+Successfully set fast_limit to 15000
+Successfully set slow_limit to 15000
+09:42:27 sample performance stapm=9.203W fast=15.008W slow=13.814W tctl=65.295C limits=15.000/15.000
+09:42:37 sample performance stapm=9.394W fast=15.042W slow=14.843W tctl=66.550C limits=15.000/15.000
+09:42:47 sample performance stapm=9.579W fast=15.000W slow=14.981W tctl=67.091C limits=15.000/15.000
+09:42:58 sample performance stapm=9.756W fast=15.097W slow=14.999W tctl=67.501C limits=15.000/15.000
+09:43:08 sample performance stapm=9.928W fast=15.022W slow=15.001W tctl=67.758C limits=15.000/15.000
+09:43:18 sample performance stapm=10.095W fast=15.086W slow=15.001W tctl=68.522C limits=15.000/15.000
+09:43:28 sample performance stapm=10.254W fast=15.023W slow=15.001W tctl=69.203C limits=15.000/15.000
+09:43:38 sample performance stapm=10.411W fast=15.205W slow=15.002W tctl=69.132C limits=15.000/15.000
+09:43:48 sample performance stapm=10.560W fast=14.965W slow=15.001W tctl=69.372C limits=15.000/15.000
+09:43:58 sample performance stapm=10.707W fast=14.974W slow=15.001W tctl=69.501C limits=15.000/15.000
+09:44:08 sample performance stapm=10.845W fast=15.032W slow=15.001W tctl=69.549C limits=15.000/15.000
+09:44:18 sample performance stapm=10.983W fast=15.053W slow=15.001W tctl=69.872C limits=15.000/15.000
+09:44:28 sample performance stapm=11.112W fast=15.017W slow=15.001W tctl=69.621C limits=15.000/15.000
+09:44:38 sample performance stapm=11.240W fast=15.014W slow=15.001W tctl=70.989C limits=15.000/15.000
+09:44:48 sample performance stapm=11.362W fast=14.990W slow=15.002W tctl=69.839C limits=15.000/15.000
+09:44:58 sample performance stapm=11.481W fast=15.151W slow=15.001W tctl=70.372C limits=15.000/15.000
+09:45:09 sample performance stapm=11.597W fast=15.026W slow=15.001W tctl=70.976C limits=15.000/15.000
+09:45:19 sample performance stapm=11.707W fast=15.066W slow=15.001W tctl=70.375C limits=15.000/15.000
+09:45:29 sample performance stapm=11.816W fast=15.230W slow=14.999W tctl=70.620C limits=15.000/15.000
+09:45:39 sample performance stapm=11.919W fast=15.133W slow=14.999W tctl=70.774C limits=15.000/15.000
+09:45:49 sample performance stapm=12.018W fast=15.184W slow=15.001W tctl=70.871C limits=15.000/15.000
+09:45:59 sample performance stapm=12.117W fast=15.127W slow=14.999W tctl=71.096C limits=15.000/15.000
+09:46:09 sample performance stapm=12.209W fast=15.159W slow=15.000W tctl=71.302C limits=15.000/15.000
+09:46:19 sample performance stapm=12.299W fast=15.246W slow=14.999W tctl=70.603C limits=15.000/15.000
+09:46:29 sample performance stapm=12.389W fast=15.106W slow=15.002W tctl=70.644C limits=15.000/15.000
+09:46:39 sample performance stapm=12.474W fast=14.913W slow=15.001W tctl=70.600C limits=15.000/15.000
+09:46:49 sample performance stapm=12.554W fast=14.892W slow=15.003W tctl=70.435C limits=15.000/15.000
+09:46:59 sample performance stapm=12.634W fast=15.210W slow=14.999W tctl=71.085C limits=15.000/15.000
+09:47:09 sample performance stapm=12.714W fast=15.178W slow=15.000W tctl=70.306C limits=15.000/15.000
+09:47:19 sample performance stapm=12.785W fast=15.216W slow=14.999W tctl=70.504C limits=15.000/15.000
+09:47:35 sample performance-final stapm=12.511W fast=7.517W slow=7.364W tctl=64.986C limits=15.000/15.000
+09:47:35 restore defaults 54000mW
+no compatible ryzen_smu kernel module found, fallback to /dev/mem
+Successfully set stapm_limit to 54000
+Successfully set fast_limit to 54000
+Successfully set slow_limit to 54000
+09:47:38 restored: | STAPM LIMIT | 54.000 | stapm-limit | | PPT LIMIT FAST | 54.000 | fast-limit | | PPT LIMIT SLOW | 54.000 | slow-limit | 
+09:47:38 DONE

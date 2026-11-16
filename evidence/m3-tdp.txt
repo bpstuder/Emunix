@@ -1,0 +1,95 @@
+# M3 — TDP and power profiles for the ROG Ally (card t_88a807c2)
+
+## What shipped
+
+- `configs/rootfs/usr/local/bin/emunix-tdp` — three named profiles over `asusctl`
+  (`profile set --ac/--battery`, so asusd follows the power source) plus `ryzenadj` for the
+  package-power ceiling in mW. With no argument it applies the remembered profile (default:
+  balanced on AC, quiet on battery); with a name it applies and remembers that profile in
+  `/var/lib/emunix/tdp-profile`. Only STAPM/PPT limits are written — no Tctl or
+  skin-temperature argument appears anywhere in the script.
+- `configs/rootfs/etc/systemd/system/emunix-tdp.service` — applies the profile at boot,
+  ordered after dbus. asusd is D-Bus activated: the Arch unit has no `[Install]` section,
+  so enabling it would be a silent no-op.
+- `configs/rootfs/etc/sudoers.d/30-emunix-tdp` — retrogamer may run exactly the three switch
+  commands without a password, nothing else (`visudo -c`: parsed OK).
+- `configs/rootfs/usr/share/emunix/power-profiles/{quiet,balanced,performance}.sh` plus a
+  `<name>power</name>` system in `es_systems.xml`: firstboot seeds them into
+  `/storage/roms/power` and ES-DE lists them under "Power Profiles".
+- `profiles/handheld-common.txt`: dropped `power-profiles-daemon` (it races asusd for the
+  kernel's platform_profile interface) and added `lm_sensors` for thermal telemetry.
+  `profiles/aur.txt`: pinned `ryzenadj` (AUR commit 3534651beaca51f5a9ebb5502167e9d003d3dcb0).
+
+## Commands and real output
+
+    $ docker exec emunix-dev bash -c 'cd /work && WORK=/tmp/emunix-build-m3tdp2 OUT=/tmp/emunix-out-m3tdp2 bash build/build-image.sh'
+    Built /tmp/emunix-out-m3tdp2/emunix-2026.11.16-x86_64.img (24G apparent, 4.1G on disk)
+    BUILD_RC=0
+
+    $ docker exec emunix-dev bash -c 'cd /work && bash build/verify-image.sh /tmp/emunix-out-m3tdp2/emunix-2026.11.16-x86_64.img'
+    verified /tmp/emunix-out-m3tdp2/emunix-2026.11.16-x86_64.img: ...; VERIFY_RC=0
+    (checks include usr/bin/ryzenadj, the three power scripts, the sudoers grant,
+     <name>power</name> in es_systems.xml, and that /usr/bin/powerprofilesctl is absent)
+
+    $ tests/test-emunix-tdp.sh
+    tdp: profiles, power-source curves, reboot persistence, thermal limits and grants OK
+    (full lint + all 9 test scripts: evidence/m3-tdp-tests.log)
+
+    $ docker exec emunix-dev bash -c '... build/session-test.sh /tmp/.../emunix-2026.11.16-x86_64.img evidence'
+    POWERMENU-COUNT 1      power system present in ~/ES-DE/custom_systems/es_systems.xml
+    Total game count: 4    1 NES placeholder + the three Power Profiles entries, scanned by ES-DE
+    session test: ES-DE autostarted, launched the NES system, RetroArch loaded nestopia_libretro.so
+    SESSION_RC=0           transcript evidence/m0-session.log, carousel evidence/m0-session-es-de.png
+
+CI: run 43846471014 on commit 3ff1f63 — success, every step green (Lint, Build image,
+Verify image, Boot, Session, First boot, Etc overlay, Slot, Updater, Health, uploads):
+https://github.com/bpstuder/Emunix/actions/runs/43846471014
+
+## Measured sustained package power (5-minute load per profile)
+
+Hardware actually measured: AMD Ryzen 7 5800H (Cezanne), 16 threads, Ubuntu 26.04,
+kernel 7.0.0-38-generic — NOT a ROG Ally. ryzenadj v0.19.0 built from the upstream tag,
+SMU reached through the /dev/mem fallback (no ryzen_smu module). Battery-side values,
+because this board exposes no /sys/class/power_supply and emunix-tdp falls back to them.
+
+Procedure: `ryzenadj --stapm-limit=W --fast-limit=W --slow-limit=W` (exactly what
+emunix-tdp runs), then 300 s of 12 spinning python processes, sampled every 10 s with
+`ryzenadj --info`; 28 samples kept per profile (first two dropped). Defaults recorded
+before (STAPM/PPT = 54 W) and restored afterwards, verified by re-reading the PM table.
+
+| profile | ceiling | PPT fast avg (min–max) | PPT slow avg (min–max) | STAPM avg | Tctl max |
+|---|---|---|---|---|---|
+| quiet | 8 W | 8.07 W (7.88–8.25) | 8.07 W (8.01–8.17) | 7.99 W | 59.9 C |
+| balanced | 10 W | 10.07 W (9.94–10.40) | 10.00 W (9.99–10.00) | 8.73 W | 62.0 C |
+| performance | 15 W | 15.08 W (14.89–15.25) | 15.00 W (14.98–15.00) | 11.41 W | 71.3 C |
+
+Raw samples: evidence/m3-tdp-measure.log.
+
+STAPM VALUE is a long-window average and was still converging when each 300 s window
+closed (it carries the previous profile's history), so it lags; PPT FAST/SLOW are the
+sustained ceilings and track the set limit within about 0.1 W.
+
+## What this does not prove
+
+- Anything about the ROG Ally itself: no asusctl/asusd behaviour (there is no ASUS WMI on
+  the test host), no AC/battery switching, no reboot survival on hardware, no real battery
+  drain, no embedded-controller rollback.
+- On the QEMU guest (no SMU) `emunix-tdp.service` fails loudly at boot — expected; it does
+  not block the session. On the Ally it should apply, and BP must confirm that.
+- The ES-DE menu proof is scan-based (systems entry + ES-DE's own "Total game count: 4" +
+  the screenshot showing the Power Profiles carousel), not a controller click-through of a
+  switch command.
+- The sudoers grant parses but was not exercised end-to-end from ES-DE.
+- power-profiles-daemon absence is verified in the image; its conflict with asusd is quoted
+  from the ArchWiki, not measured here.
+
+## Open questions for BP
+
+1. Hardware acceptance on the Ally: 5-minute load per profile while sampling
+   `sudo ryzenadj --dump-table`, confirm the chosen profile survives a reboot, and check
+   that `asusctl profile set Quiet|Balanced|Performance` accepts those names (if it does
+   not, emunix-tdp fails at boot and the mapping needs changing).
+2. Approve the passwordless sudo grant for retrogamer (three exact commands) — it is a
+   deliberate security-relevant exception, needed because ES-DE runs the menu entries as an
+   unprivileged user while the SMU is root-only.
+3. Battery-side ceilings are 8/10/15 W and AC-side 9/15/25 W; confirm they suit the device.

@@ -1,0 +1,48 @@
+SHELLCHECK_OK
+BASHN_OK
+== tests/test-emunix-health.sh
+default: emunix-a.conf (slot a)
+bad: slot b
+emunix-health: slot b did not boot; the loader now defaults to slot a
+emunix-health: attempts counted, a reached boot forgives, rollback flips and reboots safely
+== tests/test-emunix-pads.sh
+pads: udev uaccess rules, gamecontrollerdb, session env, player order and bond path OK
+== tests/test-emunix-slot.sh
+emunix-slot: root label -> slot, status writes active_slot + pending, next/once validated, refusals OK
+== tests/test-emunix-tdp.sh
+tdp: profiles, power-source curves, reboot persistence, thermal limits and grants OK
+== tests/test-emunix-update.sh
+accepted: version 2026.11.13 (stable channel, 65536 bytes, sha256 a62afd920465f898d7093ff796196b4b9016830511c1e7d73c1aef8af60c2a6a)
+ok   genuine manifest accepted
+refused: the manifest signature does not verify against pub
+Signature verification failed
+ok   (a) one-byte-modified manifest rejected
+refused: the manifest signature does not verify against pub
+Signature key id in /tmp/tmp.ZsRkah8iSV/other.minisig is 71D1CA8C9EA7587E
+but the key id in the public key is 85F99DA4E40439CE
+ok   (b) manifest signed with another key rejected
+refused: image sha256 mismatch (manifest a62afd920465f898d7093ff796196b4b9016830511c1e7d73c1aef8af60c2a6a, file f3f1c2e88acfc89d031dd8cb650bcccff3173c31ee10c99fe7e85ad1a0963b04)
+ok   (c) image with a different sha256 rejected
+refused: version 2026.11.09 is older than min_from 2026.11.10 (known-flawed range)
+ok   target below min_from rejected
+refused: manifest has no usable "min_from"
+ok   signed manifest without min_from rejected
+refused: version 2026.11.13 is not newer than the installed 2026.11.14
+ok   target older than the installed version rejected
+all tests passed
+== tests/test-etc-overlay.sh
+etc-overlay: slot-keyed upper, non-slot root refused, idempotent on restart OK
+== tests/test-firstboot.sh
+firstboot: prompt, generated password, ROM tree, read-only root and marker-last OK
+== tests/test-os-updater.sh
+ok   equal versions stay
+ok   newer day updates
+ok   newer year updates
+ok   older remote stays
+ok   empty remote stays
+ok   missing local version updates
+ok   numeric, not lexical
+all tests passed
+== tests/test-session.sh
+note: no /etc/emulationstation seed on this host, copy step skipped
+session wrapper: gamescope fallback, failure status and first-run copy OK
