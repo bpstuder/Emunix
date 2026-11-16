@@ -13,7 +13,7 @@ REPO=$(dirname "$SCRIPT_DIR")
 
 ARCH_SNAPSHOT="${ARCH_SNAPSHOT:-latest}"   # YYYY/MM/DD to pin archive.archlinux.org
 DEVICE="${DEVICE:-}"                       # e.g. rog-ally -> profiles/handhelds/rog-ally.txt
-VERSION="${VERSION:-$(date -u +%Y.%m.%d)}"
+VERSION="${VERSION:-$(date -u +%Y.%m.0)}" # <year>.<month>.<patch>; a release tag overrides it
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date -u -d "$ARCH_SNAPSHOT" +%s 2>/dev/null || date -u +%s)}"
 WORK="${WORK:-$REPO/work}"
 OUT="${OUT:-$REPO/out}"

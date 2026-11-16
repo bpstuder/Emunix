@@ -96,6 +96,12 @@ name=$(basename "$url")
 file=$CACHE_DIR/$name
 curl -fSL -C - -o "$file" "$url" || die "cannot download $url"
 verify_image "$file" "$sha256" "$size" || die "the downloaded image does not match the manifest; $target was not touched"
+# The release artifact is .img.zst; the slot needs the raw image. The manifest pins the compressed
+# bytes, so whatever zstd extracts is authenticated by the same signature. TMP dies with the trap.
+if [[ $name == *.zst ]]; then
+  zstd -d -f -o "$TMP/${name%.zst}" "$file" || die "cannot decompress $file"
+  file=$TMP/${name%.zst}
+fi
 
 dd if="$file" of="$target" bs=4M conv=fsync status=none || die "writing $target failed"
 # e2fsck -f on hash-verified bytes: -y so a non-interactive service never hangs on a prompt.

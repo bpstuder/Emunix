@@ -33,6 +33,7 @@ UT=$(mktemp -d)
 trap 'rm -rf "$UT"' EXIT
 mkdir -p "$UT/bin" "$UT/cache" "$UT/parts"
 command -v minisign >/dev/null 2>&1 || { echo "FAIL: minisign is required" >&2; exit 1; }
+command -v zstd >/dev/null 2>&1 || { echo "FAIL: zstd is required" >&2; exit 1; }
 
 fail() { printf 'FAIL: %s\n' "$*" >&2; fails=$((fails + 1)); }
 
@@ -75,6 +76,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 echo "dd $if $of" >>"$STUB_LOG"
+echo "dd-sha $(sha256sum "$if" | awk '{print $1}')" >>"$STUB_LOG"
 # A real block-device node cannot be written by cp in a test container; the log is the assertion.
 [ -b "$of" ] || cp "$if" "$of"
 STUB
@@ -195,6 +197,22 @@ if [ "$CAN_WRITE" -eq 1 ]; then
   grep -q 'slot next b' "$UT/calls" || fail "the loader was not flipped: $(cat "$UT/calls")"
   grep -q "of=$UT/parts/rootfs_a" "$UT/calls" && fail "the active slot was written"
   printf '%s\n' "$out" | grep -q 'staged 2026.11.13 on slot b' || fail "the staging message was not shown: $out"
+
+  # 9. A .img.zst release artifact is decompressed before the write: the slot gets the raw image.
+  : >"$UT/calls"
+  zstd -q -f -o "$UT/image.img.zst" "$UT/image.img"
+  ZSHA=$(sha256sum "$UT/image.img.zst" | awk '{print $1}')
+  ZSIZE=$(stat -c %s "$UT/image.img.zst")
+  printf '{"channel":"stable","version":"2026.11.13","released":"2026-11-13T00:00:00Z","image":{"url":"https://test.example/emunix-2026.11.13-x86_64.img.zst","sha256":"%s","size":%s},"min_from":"2026.11.01"}\n' \
+    "$ZSHA" "$ZSIZE" >"$UT/zst.json"
+  minisign -S -W -s "$UT/key" -m "$UT/zst.json" -x "$UT/zst.json.minisig" >/dev/null
+  out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
+    STUB_IMAGE="$UT/image.img.zst" -- 2>&1) && rc=0 || rc=$?
+  [ "$rc" -eq 0 ] || fail "a .img.zst update failed: $out"
+  grep -qE "dd .*/emunix-2026.11.13-x86_64.img $UT/parts/rootfs_b" "$UT/calls" ||
+    fail "the slot was not written from the decompressed image: $(cat "$UT/calls")"
+  grep -q "dd-sha $SHA" "$UT/calls" || fail "the written bytes are not the decompressed image: $(cat "$UT/calls")"
+  grep -q 'e2fsck -f -y '"$UT/parts/rootfs_b" "$UT/calls" || fail "the written slot was not checked: $(cat "$UT/calls")"
 else
   printf 'skip: the write tests need root for block-device nodes\n'
 fi

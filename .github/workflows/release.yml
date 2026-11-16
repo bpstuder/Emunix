@@ -1,0 +1,141 @@
+name: release
+on:
+  push:
+    tags: ['*']
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: The tag must be <year>.<month>.<patch>
+        run: |
+          [[ "$TAG" =~ ^[0-9]{4}\.[0-9]{2}\.[0-9]+$ ]] || {
+            echo "tag '$TAG' is not <year>.<month>.<patch>" >&2
+            exit 1
+          }
+
+      # Never overwrite an existing release asset: an existing release fails the job before
+      # anything is uploaded.
+      - name: Refuse an existing release
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "release '$TAG' already exists; refusing to touch its assets" >&2
+            exit 1
+          fi
+
+      - name: Install minisign and zstd
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends minisign zstd
+
+      - name: Lint and unit-test
+        run: |
+          docker run --rm -v "$PWD:/work" -w /work archlinux:latest bash -c "
+            pacman -Sy --noconfirm shellcheck minisign gnupg zstd >/dev/null &&
+            shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
+              configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
+              configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
+              configs/rootfs/usr/local/bin/emunix-pad-order configs/rootfs/usr/local/bin/emunix-tdp \
+              configs/rootfs/usr/share/emunix/power-profiles/quiet.sh \
+              configs/rootfs/usr/share/emunix/power-profiles/balanced.sh \
+              configs/rootfs/usr/share/emunix/power-profiles/performance.sh \
+              configs/rootfs/etc/skel/.bash_profile &&
+            bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
+              configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
+              configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
+              configs/rootfs/usr/local/bin/emunix-pad-order configs/rootfs/usr/local/bin/emunix-tdp \
+              configs/rootfs/usr/share/emunix/power-profiles/*.sh \
+              configs/rootfs/etc/skel/.bash_profile &&
+            bash tests/test-os-updater.sh &&
+            bash tests/test-firstboot.sh &&
+            bash tests/test-etc-overlay.sh &&
+            bash tests/test-emunix-slot.sh &&
+            bash tests/test-emunix-health.sh &&
+            bash tests/test-emunix-update.sh &&
+            bash tests/test-session.sh &&
+            bash tests/test-emunix-tdp.sh &&
+            bash tests/test-emunix-pads.sh &&
+            bash tests/test-emunix-repo.sh"
+
+      - name: Build image
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work -e VERSION="$TAG" archlinux:latest \
+            bash -c "pacman -Sy --noconfirm --needed gptfdisk dosfstools btrfs-progs e2fsprogs arch-install-scripts &&
+                     bash build/build-image.sh"
+
+      # The card 02 gate: a build that does not verify never reaches the publish step.
+      - name: Verify image
+        run: |
+          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Sy --noconfirm --needed gptfdisk e2fsprogs >/dev/null &&
+                     bash build/verify-image.sh out/emunix-$TAG-x86_64.img"
+
+      - name: Package the release artifacts
+        run: |
+          cd out
+          zstd -T0 -19 -f "emunix-$TAG-x86_64.img" -o "emunix-$TAG-x86_64.img.zst"
+          rm -f "emunix-$TAG-x86_64.img"
+          sha256sum "emunix-$TAG-x86_64.img.zst" > "emunix-$TAG-x86_64.img.zst.sha256"
+
+      - name: Sign the update manifest
+        env:
+          MINISIGN_KEY: ${{ secrets.MINISIGN_KEY }}
+          MINISIGN_PASSWORD: ${{ secrets.MINISIGN_PASSWORD }}
+        run: |
+          printf '%s' "$MINISIGN_KEY" >"$RUNNER_TEMP/minisign.key"
+          chmod 600 "$RUNNER_TEMP/minisign.key"
+          # minisign reads the passphrase from stdin; it has no env-var interface.
+          printf '%s\n' "$MINISIGN_PASSWORD" |
+            MINISIGN_KEY="$RUNNER_TEMP/minisign.key" \
+              BASE_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/$TAG" \
+              ./build/sign-manifest.sh "out/emunix-$TAG-x86_64.img.zst"
+
+      - name: Changelog and release notes
+        run: |
+          {
+            printf '## Emunix %s\n\n' "$TAG"
+            printf 'Flashing and first boot: <https://github.com/%s/blob/%s/INSTALL.md#installing-a-release-image>\n\n' \
+              "$GITHUB_REPOSITORY" "$TAG"
+            printf '### Changes since the previous release\n\n'
+            prev=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+            if [ -n "$prev" ]; then
+              git log --no-decorate --format='- %s (%h)' "$prev..$TAG"
+            else
+              git log --no-decorate --format='- %s (%h)' "$TAG"
+            fi
+            printf '\n'
+          } >out/release-notes.md
+          cat out/release-notes.md
+
+      - name: Publish the GitHub Release
+        run: |
+          gh release create "$TAG" \
+            "out/emunix-$TAG-x86_64.img.zst" \
+            "out/emunix-$TAG-x86_64.img.zst.sha256" \
+            out/emunix.json out/emunix.json.minisig \
+            --title "Emunix $TAG" \
+            --notes-file out/release-notes.md
+
+      # The exit criterion, run by CI: a fresh clone downloads the published assets and the
+      # checksum and the minisign signature both pass.
+      - name: Verify the release from a fresh clone
+        run: |
+          tmp=$(mktemp -d)
+          git clone --quiet --depth 1 --branch "$TAG" \
+            "https://github.com/${GITHUB_REPOSITORY}.git" "$tmp/clone"
+          gh release download "$TAG" -D "$tmp/assets"
+          cd "$tmp/assets"
+          sha256sum -c "emunix-$TAG-x86_64.img.zst.sha256"
+          minisign -Vm -p "$tmp/clone/configs/rootfs/etc/emunix/update.pub" \
+            -m emunix.json -x emunix.json.minisig
+          . "$tmp/clone/build/lib-update.sh"
+          check_update emunix.json emunix.json.minisig \
+            "$tmp/clone/configs/rootfs/etc/emunix/update.pub" "emunix-$TAG-x86_64.img.zst"

@@ -55,12 +55,30 @@ Either target works; the device only needs an HTTPS URL for the manifest, its si
 image. Publish all three together — an image without its manifest, or a manifest without its
 signature, is unusable by design.
 
-- **GitHub Releases** (decisions note §5): attach the image and the two manifest files to a release
-  tag matching `version`:
+A release is made by pushing a tag named `<year>.<month>.<patch>`. `.github/workflows/release.yml`
+then builds the image, runs `build/verify-image.sh` (a failed gate stops the job before anything
+is published), compresses it to `emunix-<version>-x86_64.img.zst`, writes the `.sha256`, signs the
+manifest with `build/sign-manifest.sh`, and attaches all four files to the GitHub Release. It
+refuses to run when the release already exists, so an asset is never overwritten. The final step
+clones the repository fresh, downloads the published assets and re-checks `sha256sum -c` and
+`minisign -Vm` — the release is not done until that passes.
+
+Publishing needs two repository secrets, both BP's: `MINISIGN_KEY` (the private half) and
+`MINISIGN_PASSWORD` (its passphrase, fed to minisign on stdin — minisign has no environment
+variable for it). The public half is committed at `configs/rootfs/etc/emunix/update.pub`;
+`sign-manifest.sh` refuses to sign when the key does not match it.
+
+The manual equivalent, if you are not using the workflow:
+
+- **GitHub Releases** (decisions note §5): attach the image, its `.sha256` and the two manifest
+  files to a release tag matching `version`:
   ```sh
-  gh release create <tag> out/emunix-<version>-x86_64.img.zst out/emunix.json out/emunix.json.minisig
+  BASE_URL=https://github.com/bpstuder/Emunix/releases/download/<tag> \
+    ./build/sign-manifest.sh out/emunix-<version>-x86_64.img.zst
+  gh release create <tag> out/emunix-<version>-x86_64.img.zst \
+    out/emunix-<version>-x86_64.img.zst.sha256 out/emunix.json out/emunix.json.minisig
   ```
-- **GitHub Pages**: copy the three files under a stable path, e.g. `.../emunix/stable/`.
+- **GitHub Pages**: copy the four files under a stable path, e.g. `.../emunix/stable/`.
 
 Note: assets of a *private* repository require authentication to download and devices carry no
 credentials, so whatever is published must be reachable over HTTPS without a login (public repo,

@@ -20,7 +20,7 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 - `configs/` — partition layout
 - `evidence/` — boot transcripts and screenshots from the image tests
 - `update/` — the signed update manifest format, signing and signing-key custody
-- `.github/workflows/` — CI build pipeline
+- `.github/workflows/` — CI build pipeline, and the tag-driven release pipeline (`release.yml`)
 
 ## Controllers
 
@@ -111,7 +111,7 @@ Requires an Arch host (or container) with `gptfdisk`, `dosfstools`, `btrfs-progs
 and `arch-install-scripts`.
 
 ```sh
-sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<date>-x86_64.img + .sha256
+sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<version>-x86_64.img + .sha256
 sudo ./build/verify-image.sh out/emunix-*-x86_64.img
 sudo ./build/boot-test.sh out/emunix-*-x86_64.img  # QEMU + OVMF, login on ttyS0
 sudo ./build/session-test.sh out/emunix-*-x86_64.img  # QEMU + virtio-vga: ES-DE session, screenshots
