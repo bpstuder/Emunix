@@ -61,8 +61,42 @@ both report volume down). Confirm on the device with `sudo evtest`: pick the N-K
 press each button, and the printed keycode is the one in the table.
 
 Wiring: ES-DE opens its menu on the `Start` action (Escape on the keyboard by default), so
-`F16` is the natural menu trigger; `F17`/`F18` are for the TDP profile switch
-(card `t_88a807c2`). Map them in `~/ES-DE/es_input.cfg` and the TDP command.
+`F16` is the natural menu trigger. ES-DE cannot bind a button to a shell command, so
+`F17`/`F18` are not wired by default; map them in `~/ES-DE/es_input.cfg` to ES-DE actions
+if you want them to do something. Power profiles are switched from the **Power Profiles**
+menu entry instead (below).
+
+## Power profiles
+
+Three TDP profiles are defined over `asusctl` (platform profile, with separate AC and
+battery settings so `asusd` follows the power source) and `ryzenadj` (the package-power
+ceiling, which `asusctl` does not expose):
+
+| Profile | asusctl on AC | asusctl on battery | Ceiling on AC | Ceiling on battery |
+| --- | --- | --- | --- | --- |
+| `quiet` | Quiet | Quiet | 9 W | 8 W |
+| `balanced` | Balanced | Quiet | 15 W | 10 W |
+| `performance` | Performance | Balanced | 25 W | 15 W |
+
+Ceilings stay under the ~30 W sustained limit the Ally's embedded controller enforces, so a
+running profile is not silently rolled back mid-game. Only package power limits are set;
+no thermal limit (Tctl, skin temperature) is touched.
+
+Switch from the **Power Profiles** entry in ES-DE (three script entries seeded into
+`/storage/roms/power`), or run `sudo emunix-tdp quiet|balanced|performance`. The choice is
+remembered in `/var/lib/emunix/tdp-profile` on the persistent `/var` partition and reapplied
+at boot; with nothing stored, the boot default is `balanced` on AC and `quiet` on battery.
+The ES-DE entries escalate through a sudoers rule that allows exactly those three commands
+and nothing else.
+
+Measure a profile on the device with `sudo ryzenadj --dump-table` (the SMU PM table,
+including package power) while sampling over a 5-minute load, or `sudo sensors` for
+thermals. If `asusd` re-applies its own PPT tuning and rolls the ceiling back after a few
+minutes, raise it in a card rather than editing the script by hand.
+
+`power-profiles-daemon` is deliberately not installed: the ArchWiki warns that it races
+`asusd` for the kernel's `platform_profile` interface, so the profiles are owned by
+`asusctl`.
 
 ## Quick start (dev)
 

@@ -32,9 +32,13 @@ printf '#!/bin/sh\ncat >>"%s/passwords"\n' "$TMP" >"$TMP/chpasswd"; chmod +x "$T
 sandbox() { # <growpart status> -> fresh sandbox root, prints its path
   local root
   root=$(mktemp -d "$TMP/root.XXXXXX")
-  mkdir -p "$root/etc/emulationstation" "$root/storage"
-  printf '<systemList>\n  <system><name>nes</name><path>%%ROMPATH%%/nes</path></system>\n  <system><name>psx</name><path>%%ROMPATH%%/psx</path></system>\n</systemList>\n' \
+  mkdir -p "$root/etc/emulationstation" "$root/storage" \
+    "$root/usr/share/emunix/power-profiles"
+  printf '<systemList>\n  <system><name>nes</name><path>%%ROMPATH%%/nes</path></system>\n  <system><name>psx</name><path>%%ROMPATH%%/psx</path></system>\n  <system><name>power</name><path>%%ROMPATH%%/power</path></system>\n</systemList>\n' \
     >"$root/etc/emulationstation/es_systems.xml"
+  for s in quiet balanced performance; do
+    printf '#!/bin/sh\nexit 0\n' >"$root/usr/share/emunix/power-profiles/$s.sh"
+  done
   printf '#!/bin/sh\necho "growpart $*" >>"%s/calls"\nexit %s\n' "$TMP" "$1" >"$TMP/growpart"
   chmod +x "$TMP/growpart"
   echo "$root"
@@ -53,6 +57,9 @@ grep -qx 'retrogamer:chosenpw' "$TMP/passwords" || fail "the typed password was 
 [ -f "$ROOT/var/lib/emunix/initialized" ] || fail "the marker was not written"
 for d in roms roms/nes roms/psx bios saves states; do
   [ -d "$ROOT/storage/$d" ] || fail "/storage/$d was not created"
+done
+for s in quiet balanced performance; do
+  [ -f "$ROOT/storage/roms/power/$s.sh" ] || fail "/storage/roms/power/$s.sh was not seeded"
 done
 grep -q "chown -R retrogamer:retrogamer $ROOT/storage" "$TMP/calls" || fail "/storage was not handed to retrogamer"
 grep -q 'mount -o remount,rw /' "$TMP/calls" || fail "the root was never remounted read-write"

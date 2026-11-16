@@ -64,7 +64,15 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/systemd/system/getty.target.wants/getty@tty1.service \
   etc/emulationstation/es_settings.xml etc/emulationstation/es_systems.xml \
   etc/udev/rules.d/70-emunix-gamepads.rules etc/udev/rules.d/80-emunix-ally-buttons.rules \
-  usr/share/emunix/gamecontrollerdb.txt usr/local/bin/emunix-pad-order; do
+  usr/share/emunix/gamecontrollerdb.txt usr/local/bin/emunix-pad-order \
+  usr/local/bin/emunix-tdp etc/systemd/system/emunix-tdp.service \
+  etc/systemd/system/multi-user.target.wants/emunix-tdp.service \
+  etc/sudoers.d/30-emunix-tdp \
+  usr/share/emunix/power-profiles/quiet.sh usr/share/emunix/power-profiles/balanced.sh \
+  usr/share/emunix/power-profiles/performance.sh \
+  usr/bin/asusd etc/systemd/system/asusd.service \
+  etc/systemd/system/multi-user.target.wants/asusd.service \
+  usr/bin/ryzenadj; do
   # -L too: the enabled unit is a symlink to an absolute path in the image, not in this host.
   [ -e "$MNT/$f" ] || [ -L "$MNT/$f" ] || fail "/$f missing from rootfs_a"
 done
@@ -77,6 +85,13 @@ grep -q 'SDL_GAMECONTROLLERCONFIG_FILE=/usr/share/emunix/gamecontrollerdb.txt' \
   fail "the session unit does not point SDL at the shipped gamecontrollerdb"
 grep -q 'SDL_JOYSTICK_HIDAPI=1' "$MNT/etc/systemd/user/emunix-session.service" ||
   fail "the session unit does not keep SDL HIDAPI on"
+grep -q '<name>power</name>' "$MNT/etc/emulationstation/es_systems.xml" ||
+  fail "es_systems.xml has no power system for the ES-DE menu"
+grep -qx 'retrogamer ALL=(root) NOPASSWD: /usr/local/bin/emunix-tdp quiet' \
+  "$MNT/etc/sudoers.d/30-emunix-tdp" || fail "the ES-DE sudoers grant is missing"
+# power-profiles-daemon must not ship: it races asusd for the platform_profile interface.
+[ ! -e "$MNT/usr/bin/powerprofilesctl" ] ||
+  fail "power-profiles-daemon is installed: it races asusd for platform_profile"
 [ "$(grep -c 'platform:Linux' "$MNT/usr/share/emunix/gamecontrollerdb.txt")" -gt 0 ] ||
   fail "the shipped gamecontrollerdb has no Linux entries"
 if find "$MNT/etc/udev/rules.d" -name '*.rules' -print0 |

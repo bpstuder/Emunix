@@ -1,0 +1,92 @@
+#!/bin/bash
+# Emunix TDP profiles: three named power curves for the APU package, applied over asusctl
+# (platform profile with separate AC and battery settings, so asusd follows the power source)
+# and ryzenadj (the package-power ceiling in milliwatts, which asusctl does not expose).
+#
+#   emunix-tdp                  apply the remembered profile, or the default for the power
+#                               source (balanced on AC, quiet on battery), then show it
+#   emunix-tdp <quiet|balanced|performance>
+#                               apply a profile and remember it
+#
+# The choice lives in /var/lib/emunix/tdp-profile on the persistent /var partition, so it
+# survives a reboot and an image update. Only package power limits are set -- never a
+# thermal limit (Tctl, skin temperature) -- so no profile can void asusctl's alarm thresholds.
+set -euo pipefail
+
+# PREFIX is empty in the image; tests/test-emunix-tdp.sh points it at a sandbox root so the
+# same script reads a fixture sysfs tree and writes a fixture state directory.
+PREFIX=${EMUNIX_TDP_PREFIX:-}
+STATE_DIR=$PREFIX/var/lib/emunix
+PROFILE_FILE=$STATE_DIR/tdp-profile
+POWER_SUPPLY_DIR=${EMUNIX_TDP_POWER_SUPPLY:-$PREFIX/sys/class/power_supply}
+
+# profile|asusctl on AC|asusctl on battery|mW on AC|mW on battery
+# Ceilings stay under the ~30 W sustained package limit the ROG Ally's embedded controller
+# is known to enforce, so a running profile is not silently rolled back after a few minutes.
+PROFILES=(
+  'quiet|Quiet|Quiet|9000|8000'
+  'balanced|Balanced|Quiet|15000|10000'
+  'performance|Performance|Balanced|25000|15000'
+)
+DEFAULT_ON_AC=balanced
+DEFAULT_ON_BATTERY=quiet
+
+usage() { printf 'usage: emunix-tdp [quiet|balanced|performance]\n' >&2; }
+
+lookup() { # <name> -> ASUS_AC, ASUS_BATTERY, MW_AC, MW_BATTERY
+  local row
+  for row in "${PROFILES[@]}"; do
+    IFS='|' read -r name asus_ac asus_battery mw_ac mw_battery <<<"$row"
+    if [ "$name" = "$1" ]; then
+      ASUS_AC=$asus_ac
+      ASUS_BATTERY=$asus_battery
+      MW_AC=$mw_ac
+      MW_BATTERY=$mw_battery
+      return 0
+    fi
+  done
+  return 1
+}
+
+power_source() {
+  local online state
+  for online in "$POWER_SUPPLY_DIR"/*/online; do
+    [ -f "$online" ] || continue
+    state=$(cat "$online" 2>/dev/null || true)
+    if [ "$state" = 1 ]; then
+      printf 'ac\n'
+      return 0
+    fi
+  done
+  # Nothing reports AC: battery, the conservative side of every profile.
+  printf 'battery\n'
+}
+
+apply() { # <name> <ac|battery>
+  local milliwatts
+  lookup "$1" || return 2
+  if [ "$2" = ac ]; then milliwatts=$MW_AC; else milliwatts=$MW_BATTERY; fi
+  # The ceiling goes first, so a platform-profile failure cannot leave the APU unclamped.
+  ryzenadj --stapm-limit="$milliwatts" --fast-limit="$milliwatts" --slow-limit="$milliwatts"
+  asusctl profile set --ac "$ASUS_AC"
+  asusctl profile set --battery "$ASUS_BATTERY"
+  mkdir -p "$STATE_DIR"
+  printf '%s\n' "$1" >"$PROFILE_FILE"
+  sync
+}
+
+[ $# -le 1 ] || { usage; exit 2; }
+src=$(power_source)
+if [ $# -eq 1 ]; then
+  name=$1
+elif [ -s "$PROFILE_FILE" ]; then
+  name=$(cat "$PROFILE_FILE")
+elif [ "$src" = ac ]; then
+  name=$DEFAULT_ON_AC
+else
+  name=$DEFAULT_ON_BATTERY
+fi
+lookup "$name" || { printf 'emunix-tdp: unknown profile "%s"\n' "$name" >&2; usage; exit 2; }
+apply "$name" "$src"
+printf 'emunix-tdp: profile %s (AC: %s %s mW, battery: %s %s mW), power source: %s\n' \
+  "$name" "$ASUS_AC" "$MW_AC" "$ASUS_BATTERY" "$MW_BATTERY" "$src"

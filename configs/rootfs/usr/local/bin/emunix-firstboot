@@ -56,6 +56,13 @@ seed_storage() {
     [ -n "$sys" ] || continue
     mkdir -p "$STORAGE/roms/$sys" || fail "cannot create $STORAGE/roms/$sys"
   done < <(sed -n 's|.*<path>%ROMPATH%/\([^<]*\)</path>.*|\1|p' "$SYSTEMS")
+  # The Power Profiles menu (configs/rootfs/usr/share/emunix/power-profiles) is seeded into
+  # the scanned folder so ES-DE lists the three switches; the copies live on /storage, so a
+  # user can edit them.
+  for script in "$PREFIX/usr/share/emunix/power-profiles"/*.sh; do
+    install -D -m 0755 "$script" "$STORAGE/roms/power/$(basename "$script")" ||
+      fail "cannot seed $script"
+  done
   # The session runs as retrogamer: without this it cannot save a state or add a ROM.
   chown -R "$USER_NAME:$USER_NAME" "$STORAGE" || fail "cannot chown $STORAGE"
 }

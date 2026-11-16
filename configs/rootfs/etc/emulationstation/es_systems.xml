@@ -144,4 +144,13 @@
         <platform>psp</platform>
         <theme>psp</theme>
     </system>
+    <!-- Power Profiles: three script entries, one per TDP curve (configs/rootfs/usr/share/
+         emunix/power-profiles, seeded into /storage/roms/power by firstboot). -->
+    <system>
+        <name>power</name>
+        <fullname>Power Profiles</fullname>
+        <path>%ROMPATH%/power</path>
+        <extension>.sh</extension>
+        <command>%RUNINBACKGROUND% bash %ROM%</command>
+    </system>
 </systemList>

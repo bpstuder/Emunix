@@ -1,0 +1,5 @@
+# ES-DE launches the power-profile entries as retrogamer, and the switch needs the SMU,
+# which is root-only. Exactly the three switch commands are allowed, nothing else.
+retrogamer ALL=(root) NOPASSWD: /usr/local/bin/emunix-tdp quiet
+retrogamer ALL=(root) NOPASSWD: /usr/local/bin/emunix-tdp balanced
+retrogamer ALL=(root) NOPASSWD: /usr/local/bin/emunix-tdp performance

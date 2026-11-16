@@ -1,4 +1,6 @@
 # Handheld-only packages (power, controls)
-asusctl
+asusctl                       # platform profiles and their AC/battery switching, via asusd
+lm_sensors                    # sensors: thermal telemetry for the TDP acceptance measurement
 rog-control-center
-power-profiles-daemon
+# power-profiles-daemon is deliberately absent: it races asusd for the kernel's
+# platform_profile interface (ArchWiki, asusctl). The profiles are owned by asusctl.

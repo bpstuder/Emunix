@@ -34,8 +34,12 @@ cp "$SPARSE" "$IMG" "$WORK/boot.img"
 LOOP=$(attach_image "$WORK/boot.img")
 mkdir -p "$WORK/mnt"
 mount "${LOOP}p5" "$WORK/mnt"
-mkdir -p "$WORK/mnt/storage/roms/nes"
+mkdir -p "$WORK/mnt/storage/roms/nes" "$WORK/mnt/storage/roms/power"
 head -c 16 /dev/zero >"$WORK/mnt/storage/roms/nes/placeholder.nes"
+# firstboot is skipped on this copy (the initialized marker is seeded below), so seed the
+# Power Profiles scripts here the way firstboot would on real hardware.
+cp "$SCRIPT_DIR/../configs/rootfs/usr/share/emunix/power-profiles/"*.sh \
+  "$WORK/mnt/storage/roms/power/"
 umount "$WORK/mnt"
 mount "${LOOP}p4" "$WORK/mnt"
 mkdir -p "$WORK/mnt/lib/emunix"
@@ -108,7 +112,7 @@ expect {
 }
 
 # 1. The session started by itself on tty1: nothing was typed into the VM before this point.
-send "export XDG_RUNTIME_DIR=/run/user/1000; for i in \$(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo EMUNIX-SESSION-STATE; systemctl --user is-active emunix-session; pgrep -a es-de; journalctl --user -b -u emunix-session --no-pager | tail -30; echo EMUNIX-SESSION-STATE-END\r"
+send "export XDG_RUNTIME_DIR=/run/user/1000; for i in \$(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo EMUNIX-SESSION-STATE; systemctl --user is-active emunix-session; pgrep -a es-de; journalctl --user -b -u emunix-session --no-pager | tail -30; echo POWERMENU-COUNT \$(grep -c '<name>power</name>' /home/retrogamer/ES-DE/custom_systems/es_systems.xml) \$(ls /storage/roms/power 2>&1 | tr '\\n' ' '); echo EMUNIX-SESSION-STATE-END\r"
 expect {
   -re {EMUNIX-SESSION-STATE-END} {}
   timeout { puts stderr "the ES-DE session never started"; exit 1 }
@@ -178,4 +182,6 @@ echo "expect exit: $RC"
 grep -q 'Launching game' "$LOG" || { echo "FAIL: the frontend never launched a game" >&2; exit 1; }
 grep -q 'Loading dynamic libretro core from: "/usr/lib/libretro/nestopia_libretro.so"' "$LOG" ||
   { echo "FAIL: the launch never reached the Nestopia core" >&2; exit 1; }
+grep -q 'POWERMENU-COUNT 1 balanced.sh performance.sh quiet.sh' "$LOG" ||
+  { echo "FAIL: the Power Profiles menu did not reach the running frontend" >&2; exit 1; }
 echo "session test: ES-DE autostarted, launched the NES system, RetroArch loaded nestopia_libretro.so"
