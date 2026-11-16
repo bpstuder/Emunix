@@ -64,8 +64,8 @@ expect_refused "tampered database refused" repo_verify "$TMP/repo" "$TMP/pub.gpg
 # would live outside those.
 REPO_ROOT=$(dirname "$HERE")
 for marker in 'BEGIN PGP PRIVATE KEY BLOCK' 'minisign encrypted secret key'; do
-	if grep -rIl -- "$marker" "$REPO_ROOT" --exclude-dir=.git --exclude-dir=work --exclude-dir=out \
-	  --exclude='*.md' --exclude='*.sh' 2>/dev/null | grep -q .; then
+	if grep -rIq --exclude-dir=.git --exclude-dir=work --exclude-dir=out \
+	  --exclude='*.md' --exclude='*.sh' -- "$marker" "$REPO_ROOT" 2>/dev/null; then
 		say "FAIL: private key marker \"$marker\" found outside the documentation"
 		fails=$((fails + 1))
 	else
