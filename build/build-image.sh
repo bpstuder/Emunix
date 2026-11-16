@@ -223,7 +223,7 @@ if [ -s /root/aur.txt ]; then
   [ -z "$orphans" ] || pacman -Rns --noconfirm $orphans >/dev/null
 fi
 [ -x /usr/bin/es-de ] ||
-  { echo "no /usr/bin/es-de: profiles/aur.txt did not build the frontend" >&2; exit 1; }
+  { echo "no /usr/bin/es-de: emulationstation-de was not installed from [emunix]" >&2; exit 1; }
 
 # virtio_blk so the image boots under QEMU; no autodetect, the image is not the build host.
 printf 'MODULES=(virtio_blk virtio_pci)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf kms keyboard keymap consolefont block filesystems fsck)\n' >/etc/mkinitcpio.conf
