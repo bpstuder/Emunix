@@ -36,18 +36,25 @@ update-signing key.
   fingerprint in `packages/emunix-keyring/emunix-trusted`. The image carries it at
   `/usr/share/pacman/keyrings/emunix.gpg`.
 
-Generate the pair and export the public half with:
+Generate the pair and export both halves with:
 
 ```sh
 gpg --batch --passphrase '' --quick-gen-key 'Emunix Repo <repo@emunix.local>' ed25519 sign 0
 FPR=$(gpg --list-keys --with-colons | awk -F: '/^fpr:/ {print $10; exit}')
 gpg --export "$FPR" > packages/emunix-keyring/emunix.gpg
 echo "$FPR:4:" > packages/emunix-keyring/emunix-trusted
+
+# Private half: BP's, never committed. repo.sh reads ~/.emunix/repo.key by default
+# (or $EMUNIX_GPG_KEY). The export prompts for the passphrase if the key has one.
+mkdir -p ~/.emunix
+gpg --export-secret-keys "$FPR" > ~/.emunix/repo.key
+chmod 600 ~/.emunix/repo.key
 ```
 
 `repo-build.sh` refuses to publish any package or database that is unsigned, and refuses to
 publish if a signature does not verify against the committed public half. It never prints
-the private key.
+the private key. Keep the private key unprotected: `repo-build.sh` signs non-interactively
+in the container, so a passphrase-protected key cannot sign there.
 
 ## Building and publishing
 
