@@ -97,13 +97,17 @@ file=$CACHE_DIR/$name
 curl -fSL -C - -o "$file" "$url" || die "cannot download $url"
 verify_image "$file" "$sha256" "$size" || die "the downloaded image does not match the manifest; $target was not touched"
 # The release artifact is .img.zst; the slot needs the raw image. The manifest pins the compressed
-# bytes, so whatever zstd extracts is authenticated by the same signature. TMP dies with the trap.
+# bytes, so whatever zstd extracts is authenticated by the same signature. Decompress next to the
+# download (a disk partition), never to /tmp: the raw image is far larger than the compressed one.
 if [[ $name == *.zst ]]; then
-  zstd -d -f -o "$TMP/${name%.zst}" "$file" || die "cannot decompress $file"
-  file=$TMP/${name%.zst}
+  raw=$CACHE_DIR/${name%.zst}
+  zstd -d -f -o "$raw" "$file" || die "cannot decompress $file"
+  rm -f "$file"
+  file=$raw
 fi
 
 dd if="$file" of="$target" bs=4M conv=fsync status=none || die "writing $target failed"
+rm -f "$file"
 # e2fsck -f on hash-verified bytes: -y so a non-interactive service never hangs on a prompt.
 e2fsck -f -y "$target" || die "$target does not validate after the write; the boot entry was not changed"
 "$SLOT_BIN" next "$inactive" || die "could not point the loader at slot $inactive"

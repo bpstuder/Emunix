@@ -209,7 +209,7 @@ if [ "$CAN_WRITE" -eq 1 ]; then
   out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
     STUB_IMAGE="$UT/image.img.zst" -- 2>&1) && rc=0 || rc=$?
   [ "$rc" -eq 0 ] || fail "a .img.zst update failed: $out"
-  grep -qE "dd .*/emunix-2026.11.13-x86_64.img $UT/parts/rootfs_b" "$UT/calls" ||
+  grep -q "dd $UT/cache/emunix-2026.11.13-x86_64.img $UT/parts/rootfs_b" "$UT/calls" ||
     fail "the slot was not written from the decompressed image: $(cat "$UT/calls")"
   grep -q "dd-sha $SHA" "$UT/calls" || fail "the written bytes are not the decompressed image: $(cat "$UT/calls")"
   grep -q 'e2fsck -f -y '"$UT/parts/rootfs_b" "$UT/calls" || fail "the written slot was not checked: $(cat "$UT/calls")"
