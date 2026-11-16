@@ -31,7 +31,7 @@ You need `zstd`, `sha256sum` and (to check the signature) `minisign`.
    (`configs/rootfs/etc/emunix/update.pub`) and baked into every image at `/etc/emunix/update.pub`:
    ```sh
    git clone --depth 1 https://github.com/bpstuder/Emunix.git
-   minisign -Vm -p Emunix/configs/rootfs/etc/emunix/update.pub -m emunix.json -x emunix.json.minisig
+   minisign -Vm emunix.json -x emunix.json.minisig -p Emunix/configs/rootfs/etc/emunix/update.pub
    ```
    It must print `Signature and comment signature verified`. The manifest's `sha256` and `size`
    pin the image bytes; the signature pins the manifest.

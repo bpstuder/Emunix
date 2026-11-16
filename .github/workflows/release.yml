@@ -134,8 +134,8 @@ jobs:
           gh release download "$TAG" -D "$tmp/assets"
           cd "$tmp/assets"
           sha256sum -c "emunix-$TAG-x86_64.img.zst.sha256"
-          minisign -Vm -p "$tmp/clone/configs/rootfs/etc/emunix/update.pub" \
-            -m emunix.json -x emunix.json.minisig
+          minisign -Vm emunix.json -x emunix.json.minisig \
+            -p "$tmp/clone/configs/rootfs/etc/emunix/update.pub"
           . "$tmp/clone/build/lib-update.sh"
           check_update emunix.json emunix.json.minisig \
             "$tmp/clone/configs/rootfs/etc/emunix/update.pub" "emunix-$TAG-x86_64.img.zst"
