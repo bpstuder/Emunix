@@ -53,7 +53,9 @@ passphrase interactively. Keep it offline and backed up — see below.
 
 Either target works; the device only needs an HTTPS URL for the manifest, its signature and the
 image. Publish all three together — an image without its manifest, or a manifest without its
-signature, is unusable by design.
+signature, is unusable by design. The image's default `EMUNIX_REPO_URL` is GitHub's latest-release
+asset path, so a GitHub Release alone is enough: the manifest and signature are found there
+automatically, and no separate Pages publish is needed.
 
 A release is made by pushing a tag named `<year>.<month>.<patch>`. `.github/workflows/release.yml`
 then builds the image, runs `build/verify-image.sh` (a failed gate stops the job before anything
@@ -98,6 +100,11 @@ the absolute `image.url` inside the manifest:
 `build/sign-manifest.sh` writes the manifest and signature next to the image, so `<base>` is the
 release or Pages directory you publish from.
 
+The image's default base URL is `https://github.com/bpstuder/Emunix/releases/latest/download`,
+GitHub's stable "latest release" asset path: `emunix.json` and `emunix.json.minisig` keep the
+same names in every release, so a device finds the newest manifest with no per-version setting and
+no extra publish. `EMUNIX_REPO_URL` overrides it (the tests and a mirror use that).
+
 ## Applying an update
 
 The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a daily timer,
@@ -107,10 +114,18 @@ The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a
    continue if it cannot be determined;
 2. fetches `emunix.json` and `emunix.json.minisig` from `EMUNIX_REPO_URL` and verifies the
    signature and every field (`check_update`);
-3. downloads the image to `/var/cache/emunix/` with resume, checks free space first, and verifies
-   its sha256 and size;
-4. writes it to `/dev/disk/by-partlabel/rootfs_<inactive>`, runs `e2fsck -f`, and flips the loader
-   with `emunix-slot next <inactive>`.
+3. downloads the `.img.zst` release artifact to `/var/cache/emunix/` with resume, checks free space
+   first, and verifies its sha256 and size;
+4. streams the artifact's `rootfs_a` partition (located by reading its GPT) straight into
+   `/dev/disk/by-partlabel/rootfs_<inactive>`, runs `e2fsck -f`, and flips the loader with
+   `emunix-slot next <inactive>`.
+
+The artifact is a full GPT disk image (~24 GiB raw, ~1.3 GiB compressed), so the updater never
+decompresses it to a file: `/var` (2 GiB) only ever holds the compressed artifact. The GPT is read
+from a 2 MiB probe at the start of the artifact; the manifest's sha256/size pin the artifact, so
+the partition boundaries are authenticated by the same signature. The ESP and the kernel are
+shared between slots and are not rewritten by an update, so a release that changes the kernel does
+not reach a device until the ESP is updated too.
 
 A failed run leaves the active slot untouched, so the device still boots. `--dry-run` prints the
 plan (version, url, target partition, bytes) and changes nothing.

@@ -120,10 +120,10 @@ sets it from the tag.
   edits do not carry across an update.
 - Updates are whole signed images, not packages. `emunix-os-updater` (daily timer, AC power)
   fetches `emunix.json` and `emunix.json.minisig` from `EMUNIX_REPO_URL`, verifies the signature
-  against `/etc/emunix/update.pub`, downloads the `.img.zst`, decompresses it, verifies the
-  sha256/size, writes the inactive slot and flips the loader. The default `EMUNIX_REPO_URL` is a
-  placeholder; point it at the release URL (or a stable mirror) to receive updates. See
-  `update/README.md`.
+  against `/etc/emunix/update.pub`, downloads the `.img.zst`, verifies the sha256/size, streams the
+  image's `rootfs_a` partition into the inactive slot and flips the loader. The default
+  `EMUNIX_REPO_URL` is GitHub's latest-release asset URL, so a device finds new releases with no
+  configuration; override it for a mirror. See `update/README.md`.
 - The `[emunix]` pacman repository (`https://bpstuder.github.io/Emunix/`) carries packages the
   official repositories do not, and is used while building the image. The read-only root cannot
   install packages at runtime, so a running device gets them from a new image.

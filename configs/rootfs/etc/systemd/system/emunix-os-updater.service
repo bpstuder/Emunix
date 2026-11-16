@@ -11,5 +11,5 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/emunix-os-updater
-# The image is ~2.5 GiB; a slow link must not trip the default 90 s timeout.
+# The release artifact is ~1.3 GiB compressed; a slow link must not trip the default 90 s timeout.
 TimeoutStartSec=30min

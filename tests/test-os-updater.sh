@@ -67,18 +67,27 @@ esac
 STUB
 cat >"$UT/bin/dd" <<'STUB'
 #!/bin/bash
-if="" of=""
-while [ $# -gt 0 ]; do
-  case $1 in
-    if=*) if=${1#if=} ;;
-    of=*) of=${1#of=} ;;
+if=""; of=""
+for a in "$@"; do
+  case $a in
+    if=*) if=${a#if=} ;;
+    of=*) of=${a#of=} ;;
   esac
-  shift
 done
-echo "dd $if $of" >>"$STUB_LOG"
-echo "dd-sha $(sha256sum "$if" | awk '{print $1}')" >>"$STUB_LOG"
-# A real block-device node cannot be written by cp in a test container; the log is the assertion.
-[ -b "$of" ] || cp "$if" "$of"
+if [ -n "$if" ]; then
+  echo "dd $if $of" >>"$STUB_LOG"
+  echo "dd-sha $(sha256sum "$if" | awk '{print $1}')" >>"$STUB_LOG"
+  # A real block-device node cannot be written by cp in a test container; the log is the assertion.
+  [ -b "$of" ] || cp "$if" "$of"
+else
+  # Streamed input: the real dd stops at count bytes, the stub reads it all and records the args.
+  tmp=$(mktemp)
+  cat >"$tmp"
+  echo "dd - $of" >>"$STUB_LOG"
+  echo "dd-args $*" >>"$STUB_LOG"
+  [ -b "$of" ] || cp "$tmp" "$of"
+  rm -f "$tmp"
+fi
 STUB
 cat >"$UT/bin/e2fsck" <<'STUB'
 #!/bin/bash
@@ -198,20 +207,28 @@ if [ "$CAN_WRITE" -eq 1 ]; then
   grep -q "of=$UT/parts/rootfs_a" "$UT/calls" && fail "the active slot was written"
   printf '%s\n' "$out" | grep -q 'staged 2026.11.13 on slot b' || fail "the staging message was not shown: $out"
 
-  # 9. A .img.zst release artifact is decompressed before the write: the slot gets the raw image.
+  # 9. A .img.zst release artifact is a GPT disk image: the slot gets its rootfs_a partition.
   : >"$UT/calls"
-  zstd -q -f -o "$UT/image.img.zst" "$UT/image.img"
-  ZSHA=$(sha256sum "$UT/image.img.zst" | awk '{print $1}')
-  ZSIZE=$(stat -c %s "$UT/image.img.zst")
+  truncate -s 16M "$UT/disk.img"
+  sfdisk "$UT/disk.img" >/dev/null 2>&1 <<'EOF'
+label: gpt
+start=2048, size=8192, name="rootfs_a"
+EOF
+  head -c 4194304 /dev/urandom >"$UT/rootfs.payload"
+  dd if="$UT/rootfs.payload" of="$UT/disk.img" bs=1M seek=1 conv=notrunc status=none
+  zstd -q -f -o "$UT/disk.img.zst" "$UT/disk.img"
+  ZSHA=$(sha256sum "$UT/disk.img.zst" | awk '{print $1}')
+  ZSIZE=$(stat -c %s "$UT/disk.img.zst")
   printf '{"channel":"stable","version":"2026.11.13","released":"2026-11-13T00:00:00Z","image":{"url":"https://test.example/emunix-2026.11.13-x86_64.img.zst","sha256":"%s","size":%s},"min_from":"2026.11.01"}\n' \
     "$ZSHA" "$ZSIZE" >"$UT/zst.json"
   minisign -S -W -s "$UT/key" -m "$UT/zst.json" -x "$UT/zst.json.minisig" >/dev/null
   out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
-    STUB_IMAGE="$UT/image.img.zst" -- 2>&1) && rc=0 || rc=$?
-  [ "$rc" -eq 0 ] || fail "a .img.zst update failed: $out"
-  grep -q "dd $UT/cache/emunix-2026.11.13-x86_64.img $UT/parts/rootfs_b" "$UT/calls" ||
-    fail "the slot was not written from the decompressed image: $(cat "$UT/calls")"
-  grep -q "dd-sha $SHA" "$UT/calls" || fail "the written bytes are not the decompressed image: $(cat "$UT/calls")"
+    STUB_IMAGE="$UT/disk.img.zst" -- 2>&1) && rc=0 || rc=$?
+  [ "$rc" -eq 0 ] || fail "a .img.zst disk image update failed: $out"
+  grep -q "skip=1048576 count=4194304" "$UT/calls" ||
+    fail "the slot was not written from the rootfs_a partition: $(cat "$UT/calls")"
+  grep -q "of=$UT/parts/rootfs_b" "$UT/calls" ||
+    fail "the rootfs_a partition was not written to the inactive slot: $(cat "$UT/calls")"
   grep -q 'e2fsck -f -y '"$UT/parts/rootfs_b" "$UT/calls" || fail "the written slot was not checked: $(cat "$UT/calls")"
 else
   printf 'skip: the write tests need root for block-device nodes\n'

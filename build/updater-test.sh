@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Prove emunix-os-updater on a real boot: v1 on slot a fetches a signed v2 manifest over HTTPS,
-# verifies it, downloads the image, writes the inactive slot and flips the loader; a reboot lands
-# on v2 with /etc/emunix-version matching. The negative case serves a corrupted image and shows
-# the abort with the active slot still on v1.
+# verifies it, downloads the release artifact, writes the inactive slot and flips the loader; a
+# reboot lands on v2 with /etc/emunix-version matching. The negative case serves a corrupted
+# artifact and shows the abort with the active slot still on v1.
 #
-# The v2 rootfs is v1 with the emulation stack removed and the version bumped: the test only needs
-# a bootable rootfs that reports a newer version, and the full ~2.5 GiB rootfs does not fit the
-# 2 GiB /var cache (see the card's open question).
+# The v2 artifact is the real release artifact: the full GPT disk image with only the version
+# bumped, compressed to .img.zst. The updater streams its rootfs_a partition into the slot, so the
+# 24 GiB raw image never touches the 2 GiB /var cache.
 #
 # Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect, socat, gptfdisk, e2fsprogs,
-# openssl, python3, minisign. Usage: updater-test.sh <emunix.img> [evidence-dir]
+# openssl, python3, minisign, zstd. Usage: updater-test.sh <emunix.img> [evidence-dir]
 set -euo pipefail
 IMG=${1:?usage: updater-test.sh <emunix.img> [evidence-dir]}
 OUT=${2:-$(dirname "$0")/../evidence}
@@ -17,7 +17,7 @@ OUT=${2:-$(dirname "$0")/../evidence}
 [ "$(id -u)" -eq 0 ] || { echo "updater-test.sh must run as root (loop mount)" >&2; exit 1; }
 OVMF=/usr/share/edk2/x64
 [ -f "$OVMF/OVMF_CODE.4m.fd" ] || { echo "edk2-ovmf is not installed ($OVMF)" >&2; exit 1; }
-for c in expect socat python3 openssl minisign mkfs.ext4 e2fsck sha256sum; do
+for c in expect socat python3 openssl minisign zstd sha256sum curl; do
   command -v "$c" >/dev/null || { echo "$c is required" >&2; exit 1; }
 done
 
@@ -39,10 +39,9 @@ cleanup() {
   pkill -f "[q]emu-system-x86_64" 2>/dev/null || true
   [ -n "$SERVER_PID" ] && kill "$SERVER_PID" 2>/dev/null || true
   umount -R -l "$WORK" 2>/dev/null || true
-  for m in "$WORK/a" "$WORK/v2mnt" "$WORK/mnt"; do rmdir "$m" 2>/dev/null || true; done
+  for m in "$WORK/a" "$WORK/mnt"; do rmdir "$m" 2>/dev/null || true; done
   # Never let rm -rf recurse into a mounted partition: it would delete the filesystem inside.
-  if ! mountpoint -q "$WORK/a" 2>/dev/null && ! mountpoint -q "$WORK/v2mnt" 2>/dev/null &&
-     ! mountpoint -q "$WORK/mnt" 2>/dev/null; then
+  if ! mountpoint -q "$WORK/a" 2>/dev/null && ! mountpoint -q "$WORK/mnt" 2>/dev/null; then
     rm -rf "$WORK"
   else
     printf 'warning: %s is still mounted; leaving it in place\n' "$WORK" >&2
@@ -52,61 +51,26 @@ trap cleanup EXIT
 : >"$LOG"
 echo "image $IMG, accel $ACCEL" | tee -a "$LOG"
 
-# --- the v2 rootfs image ---------------------------------------------------------------
-# Work on a copy: the built image is never mounted, so a test run cannot modify it.
-cp --sparse=always "$IMG" "$WORK/base.img"
-LOOP=$(attach_image "$WORK/base.img")
-mkdir -p "$WORK/a" "$WORK/v2root"
-mount -o ro "${LOOP}p2" "$WORK/a"
+# --- the v2 release artifact: the real disk image, version bumped ------------------------
+# Work on a copy: the built image is never mounted, so a test run cannot modify it. This is the
+# full GPT disk image a release publishes, so the updater must stream rootfs_a out of it.
+cp --sparse=always "$IMG" "$WORK/v2.img"
+LOOP=$(attach_image "$WORK/v2.img")
+mkdir -p "$WORK/a"
+mount "${LOOP}p2" "$WORK/a"
 V1=$(cat "$WORK/a/etc/emunix-version")
 # The version is <year>.<month>.<patch>; bump the patch, not the day.
 V2=$(awk -F. '{printf "%s.%s.%d", $1, $2, $3 + 1}' <<<"$V1")
-cp -a "$WORK/a/." "$WORK/v2root/"
+printf '%s\n' "$V2" >"$WORK/a/etc/emunix-version"
 umount "$WORK/a"
 losetup -d "$LOOP"
-rm -rf "$WORK/v2root/usr/lib/firmware" \
-       "$WORK/v2root/usr/lib/python3.14" \
-       "$WORK/v2root/usr/lib/libLLVM.so.23.1" \
-       "$WORK/v2root/usr/lib/libretro" \
-       "$WORK/v2root/usr/share/es-de" \
-       "$WORK/v2root/usr/bin/es-de" \
-       "$WORK/v2root/usr/bin/retroarch" \
-       "$WORK/v2root/usr/bin/dolphin-emu" \
-       "$WORK/v2root/usr/bin/ppsspp" \
-       "$WORK/v2root/usr/bin/mupen64plus" \
-       "$WORK/v2root/usr/bin/gamescope" \
-       "$WORK/v2root/usr/include" \
-       "$WORK/v2root/usr/lib/debug" \
-       "$WORK/v2root/usr/lib/qt6" \
-       "$WORK/v2root/usr/share/qt6" \
-       "$WORK/v2root/usr/lib/glycin-loaders" \
-       "$WORK/v2root/usr/lib/libgallium-26.2.7-arch1.1.so" \
-       "$WORK/v2root/usr/lib/libicudata.so.78.3" \
-       "$WORK/v2root/usr/lib/liblapack.so.3.12.0" \
-       "$WORK/v2root/usr/lib/libglslang.a" \
-       "$WORK/v2root/usr/lib/cmake" \
-       "$WORK/v2root/usr/share/gir-1.0" \
-       "$WORK/v2root/usr/share/dolphin-emu" \
-       "$WORK/v2root/usr/share/ppsspp" \
-       "$WORK/v2root/usr/bin/PPSSPPHeadless" \
-       "$WORK/v2root/usr/bin/PPSSPPSDL" \
-       "$WORK/v2root/usr/bin/rog-control-center" \
-       "$WORK/v2root/usr/bin/asusd" \
-       "$WORK/v2root/usr/bin/xgettext"
-printf '%s\n' "$V2" >"$WORK/v2root/etc/emunix-version"
-used=$(du -sb "$WORK/v2root" | awk '{print $1}')
-imgsize=$((used + used / 4))   # 25% headroom for ext4 metadata
-truncate -s "$imgsize" "$WORK/v2.img"
-mkfs.ext4 -q -F "$WORK/v2.img"
-mkdir -p "$WORK/v2mnt"
-mount "$WORK/v2.img" "$WORK/v2mnt"
-cp -a "$WORK/v2root/." "$WORK/v2mnt/"
-umount "$WORK/v2mnt"
-echo "v1 $V1 -> v2 $V2, image $(stat -c %s "$WORK/v2.img") bytes" | tee -a "$LOG"
+zstd -q -T0 -19 -f "$WORK/v2.img" -o "$WORK/v2.img.zst"
+rm -f "$WORK/v2.img"
+echo "v1 $V1 -> v2 $V2, artifact $(stat -c %s "$WORK/v2.img.zst") bytes compressed" | tee -a "$LOG"
 
 # The corrupt copy: one byte flipped, so the sha256 no longer matches the manifest.
-cp --sparse=always "$WORK/v2.img" "$WORK/v2-corrupt.img"
-printf 'x' | dd of="$WORK/v2-corrupt.img" bs=1 seek=1000 conv=notrunc status=none
+cp --sparse=always "$WORK/v2.img.zst" "$WORK/v2-corrupt.img.zst"
+printf 'x' | dd of="$WORK/v2-corrupt.img.zst" bs=1 seek=1000 conv=notrunc status=none
 
 # --- the HTTPS endpoint: a throwaway CA, a server cert for 10.0.2.2, and a test keypair ----
 openssl req -x509 -newkey rsa:2048 -nodes -keyout "$WORK/ca.key" -out "$WORK/ca.pem" \
@@ -118,13 +82,13 @@ openssl x509 -req -in "$WORK/server.csr" -CA "$WORK/ca.pem" -CAkey "$WORK/ca.key
   -CAcreateserial -out "$WORK/server.pem" -days 2 -extfile "$WORK/san.cnf" 2>/dev/null
 minisign -G -W -p "$WORK/pub" -s "$WORK/key" >/dev/null
 
-SHA=$(sha256sum "$WORK/v2.img" | awk '{print $1}')
-SIZE=$(stat -c %s "$WORK/v2.img")
+SHA=$(sha256sum "$WORK/v2.img.zst" | awk '{print $1}')
+SIZE=$(stat -c %s "$WORK/v2.img.zst")
 mkdir -p "$WORK/serve"
-printf '{"channel":"stable","version":"%s","released":"2026-11-13T00:00:00Z","image":{"url":"https://10.0.2.2:%s/emunix-%s-x86_64.img","sha256":"%s","size":%s},"min_from":"%s"}\n' \
+printf '{"channel":"stable","version":"%s","released":"2026-11-13T00:00:00Z","image":{"url":"https://10.0.2.2:%s/emunix-%s-x86_64.img.zst","sha256":"%s","size":%s},"min_from":"%s"}\n' \
   "$V2" "$PORT" "$V2" "$SHA" "$SIZE" "$V1" >"$WORK/serve/emunix.json"
 minisign -S -W -s "$WORK/key" -m "$WORK/serve/emunix.json" -x "$WORK/serve/emunix.json.minisig"
-cp "$WORK/v2.img" "$WORK/serve/emunix-$V2-x86_64.img"
+cp "$WORK/v2.img.zst" "$WORK/serve/emunix-$V2-x86_64.img.zst"
 
 cat >"$WORK/serve.py" <<'PY'
 import http.server, ssl, sys, os
@@ -279,7 +243,7 @@ echo "=== boot 2: reboot after the update" | tee -a "$LOG"
 boot "$POS" "$WORK/cmds2" "UPDATE-BOOT2-END"
 
 # --- the negative run: a corrupted image aborts, slot a is untouched ---------------------
-cp "$WORK/v2-corrupt.img" "$WORK/serve/emunix-$V2-x86_64.img"
+cp "$WORK/v2-corrupt.img.zst" "$WORK/serve/emunix-$V2-x86_64.img.zst"
 echo "=== boot 3: the corrupt image" | tee -a "$LOG"
 boot "$NEG" "$WORK/cmds3" "UPDATE-BOOT3-END"
 

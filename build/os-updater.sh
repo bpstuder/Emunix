@@ -6,13 +6,17 @@
 #
 # Safety: the active slot comes from the running root (emunix-slot active) and the run aborts
 # when it cannot be determined; nothing is written to a slot before the whole image is downloaded
-# and its sha256/size match the signed manifest. A failed run leaves the active slot untouched.
+# and its sha256/size match the signed manifest. The release artifact is a GPT disk image, so only
+# its rootfs_a partition is streamed into the inactive slot. A failed run leaves the active slot
+# untouched.
 set -euo pipefail
 
 # shellcheck disable=SC1090   # the library path is overridable for tests
 . "${EMUNIX_LIB:-/usr/local/lib/emunix/lib-update.sh}"
 
-REPO_URL="${EMUNIX_REPO_URL:-https://example.invalid/emunix}"
+# GitHub's "latest release" asset URL is stable across tags, so a device finds the newest manifest
+# without a per-version default. The manifest's own image.url is absolute and points at the release.
+REPO_URL="${EMUNIX_REPO_URL:-https://github.com/bpstuder/Emunix/releases/latest/download}"
 CACHE_DIR="${EMUNIX_CACHE_DIR:-/var/cache/emunix}"
 PUBKEY="${EMUNIX_UPDATE_PUBKEY:-/etc/emunix/update.pub}"
 VERSION_FILE="${EMUNIX_VERSION_FILE:-/etc/emunix-version}"
@@ -96,18 +100,41 @@ name=$(basename "$url")
 file=$CACHE_DIR/$name
 curl -fSL -C - -o "$file" "$url" || die "cannot download $url"
 verify_image "$file" "$sha256" "$size" || die "the downloaded image does not match the manifest; $target was not touched"
-# The release artifact is .img.zst; the slot needs the raw image. The manifest pins the compressed
-# bytes, so whatever zstd extracts is authenticated by the same signature. Decompress next to the
-# download (a disk partition), never to /tmp: the raw image is far larger than the compressed one.
-if [[ $name == *.zst ]]; then
-  raw=$CACHE_DIR/${name%.zst}
-  zstd -d -f -o "$raw" "$file" || die "cannot decompress $file"
-  rm -f "$file"
-  file=$raw
-fi
 
-dd if="$file" of="$target" bs=4M conv=fsync status=none || die "writing $target failed"
-rm -f "$file"
+# The release artifact is a full GPT disk image; the slot needs only its rootfs_a partition. Stream
+# that partition into the slot so the 24 GiB raw image never touches /var (2 GiB): the manifest
+# pins the compressed bytes, and zstd reads exactly those bytes. A non-.zst artifact is a bare
+# rootfs image and is written whole.
+if [[ $name == *.zst ]]; then
+  raw_size=$(zstd -lv "$file" | sed -n 's/.*Decompressed Size:.*(\([0-9]\+\) B).*/\1/p')
+  [ -n "$raw_size" ] || die "cannot read the decompressed size of $file"
+  # partx reads the backup GPT at the end of the image, so the probe file must have the real size;
+  # it is sparse, so only the 2 MiB that hold the primary table costs space.
+  prefix=$CACHE_DIR/.gpt.img
+  truncate -s "$raw_size" "$prefix"
+  # dd stops at 2 MiB, so zstd is killed by SIGPIPE; that is the normal end of a streamed read, not
+  # a failure. Suspend pipefail so dd's own status is what the checks below see.
+  set +o pipefail
+  probe_rc=0
+  zstd -dc "$file" | dd of="$prefix" bs=1M count=2 conv=notrunc status=none || probe_rc=$?
+  set -o pipefail
+  [ "$probe_rc" -eq 0 ] || die "cannot read the partition table from $file"
+  entry=$(partx --show --output START,SECTORS,NAME --noheadings "$prefix" 2>/dev/null |
+    awk '$3=="rootfs_a" {print $1, $2}') || true
+  rm -f "$prefix"
+  [ -n "$entry" ] || die "no rootfs_a partition in $file"
+  read -r start sectors _ <<<"$entry"
+  set +o pipefail
+  write_rc=0
+  zstd -dc "$file" | dd bs=1M skip=$((start * 512)) count=$((sectors * 512)) \
+    iflag=skip_bytes,count_bytes,fullblock of="$target" conv=fsync status=none || write_rc=$?
+  set -o pipefail
+  [ "$write_rc" -eq 0 ] || die "writing $target failed"
+  rm -f "$file"
+else
+  dd if="$file" of="$target" bs=4M conv=fsync status=none || die "writing $target failed"
+  rm -f "$file"
+fi
 # e2fsck -f on hash-verified bytes: -y so a non-interactive service never hangs on a prompt.
 e2fsck -f -y "$target" || die "$target does not validate after the write; the boot entry was not changed"
 "$SLOT_BIN" next "$inactive" || die "could not point the loader at slot $inactive"
