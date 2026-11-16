@@ -1,24 +1,18 @@
 # AUR packages, built in the image chroot by build/build-image.sh. Official repos come from
-# base.txt; these have no official package. Format: <name> <pinned AUR git commit>.
+# base.txt; these have no official package and are not (yet) in the [emunix] repo.
+# Format: <name> <pinned AUR git commit>.
 #
 # Order matters: packages build top to bottom, so a dependency comes before what needs it.
 # The commit is pinned so an AUR update cannot change the image silently; bump it deliberately.
 # CI builds every push, so a broken PKGBUILD or dead source tarball fails the build loudly.
 #
-# freeimage - dropped from the official repos; emulationstation-de still needs it (found by the
-#             build failing on "target not found: freeimage").
-freeimage 66732f09db170483348f14f3d02815181c4d04d0
-#
-# emulationstation-de 3.5.0-1, the ES-DE frontend, built from the upstream -AUR tarball.
-emulationstation-de 49541b7e279060da1868de81a97135a51ef89aaf
-#
-# ryzenadj - the package-power ceiling (STAPM/PPT) behind the three TDP profiles
-#            (configs/rootfs/usr/local/bin/emunix-tdp); asusctl does not expose watts.
-#            Now built from packages/ryzenadj and installed from [emunix] (card 13).
+# freeimage and emulationstation-de were built here until card 14 moved them to packages/;
+# the image now installs them from [emunix] (build/build-image.sh), so they are absent by
+# design, not by omission.
 #
 # Not here, deliberately:
 #   pcsx2   - AUR-only, and its own depends (kddockwidgets, rapidyaml) are AUR-only too: a
-#             multi-package AUR chain that belongs in the [emunix] repo (card 13).
+#             multi-package AUR chain that belongs in the [emunix] repo.
 #   flycast - standalone is AUR-only; Dreamcast is covered by extra/libretro-flycast.
 #   rpcs3   - AUR-only and large; PS3 is out of scope for M0.
-#   libretro-beetle-saturn - not in any official repo; Saturn needs card 13 as well.
+#   libretro-beetle-saturn - not in any official repo; Saturn needs the [emunix] repo as well.

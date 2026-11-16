@@ -43,18 +43,56 @@ chmod 0440 /etc/sudoers.d/20-repo-build
 install -m 0644 -o "$BUILDUSER" -g "$BUILDUSER" "$KEYFILE" "$BUILDROOT/repo.key"
 su - "$BUILDUSER" -c "gpg --quiet --import '$BUILDROOT/repo.key'"
 
+# Build order: packages/order, not the alphabetical directory order. A dependent's
+# makedepends must already be installed in this container, so each package is installed
+# as soon as it is built.
+ORDER="$PKGDIR/order"
+[ -f "$ORDER" ] || fail "no build order at $ORDER"
+mapfile -t ORDERED < <(sed 's/#.*//; s/[[:space:]]*$//' "$ORDER" | grep -v '^[[:space:]]*$')
+[ ${#ORDERED[@]} -gt 0 ] || fail "$ORDER is empty"
+
+# The list and the directory must agree exactly: every packages/*/ with a PKGBUILD once,
+# and no entry without a PKGBUILD. Otherwise a new package builds in an arbitrary order.
+shopt -s nullglob
+declare -A listed=()
+for name in "${ORDERED[@]}"; do
+  [ -f "$PKGDIR/$name/PKGBUILD" ] || fail "$ORDER lists $name, which has no PKGBUILD"
+  [ -z "${listed[$name]:-}" ] || fail "$ORDER lists $name more than once"
+  listed[$name]=1
+done
+for dir in "$PKGDIR"/*/; do
+  name=$(basename "$dir")
+  [ -f "$dir/PKGBUILD" ] || continue
+  [ -n "${listed[$name]:-}" ] || fail "$PKGDIR/$name has a PKGBUILD but is absent from $ORDER"
+done
+
+# Trust the committed public half in pacman's keyring so pacman -U accepts the signed
+# packages below; a dependent's makepkg --syncdeps resolves against this container, not
+# against [emunix], which is not configured here.
+pacman-key --init >/dev/null
+pacman-key --add "$PUBKEY" >/dev/null
+pacman-key --lsign-key "$FPR" >/dev/null
+
 rm -rf "$OUT"
 mkdir -p "$OUT"
-for dir in "$PKGDIR"/*/; do
-  [ -f "$dir/PKGBUILD" ] || continue
-  name=$(basename "$dir")
+for name in "${ORDERED[@]}"; do
   echo "building $name"
   build="$BUILDROOT/$name"
   mkdir -p "$build"
-  cp -a "$dir/." "$build/"
+  cp -a "$PKGDIR/$name/." "$build/"
   chown -R "$BUILDUSER":"$BUILDUSER" "$build"
   su - "$BUILDUSER" -c "cd '$build' && makepkg --syncdeps --sign --noconfirm" >/dev/null
   cp "$build"/*.pkg.tar.zst "$build"/*.pkg.tar.zst.sig "$OUT"/
+  pkgs=("$OUT/$name-"*.pkg.tar.zst)
+  [ ${#pkgs[@]} -gt 0 ] || fail "building $name produced no package"
+  # Install it into the build container so the next package's makepkg --syncdeps resolves
+  # against this container, not against [emunix]. emunix-keyring is the one exception: it is
+  # not a build dependency of anything, and its .install adds the [emunix] stanza, whose
+  # database this container deliberately does not serve — a stanza with no database makes
+  # every later pacman call fail.
+  if [ "$name" != emunix-keyring ]; then
+    pacman -U --noconfirm "${pkgs[@]}" >/dev/null
+  fi
 done
 rm -f /etc/sudoers.d/20-repo-build
 

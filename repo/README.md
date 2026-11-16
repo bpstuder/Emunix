@@ -1,26 +1,42 @@
 # The `[emunix]` pacman repository
 
-Packages that are not in the official Arch repositories — the ES-DE frontend, `ryzenadj`,
-`rog-control-center`, the updater, default themes — are built from `packages/` and published
-as a pacman repository on GitHub Pages:
+Packages that are not in the official Arch repositories — the ES-DE frontend and its
+`freeimage` dependency, `ryzenadj`, the updater, default themes — are built from `packages/`
+and published as a pacman repository on GitHub Pages:
 
 ```text
 https://bpstuder.github.io/Emunix/
 ```
 
-`build/build-image.sh` consumes it: the image build installs `emunix-keyring` and `ryzenadj`
-from `[emunix]` with signature checking on. Nothing is installed from it at runtime (see
-below).
+`build/build-image.sh` consumes it: the image build installs `emunix-keyring`, `ryzenadj`,
+`freeimage` and `emulationstation-de` from `[emunix]` with signature checking on. Nothing is
+installed from it at runtime (see below).
 
 ## Layout
 
 ```text
 packages/<name>/PKGBUILD   one directory per package; sources are pinned (release tarball +
-                           sha256, or a pinned VCS commit for an AUR-shaped package)
+                           sha512, or a pinned VCS commit for an AUR-shaped package)
+packages/order             the build order: a dependency is built before its dependent
 packages/emunix-keyring/   the public half of the signing key and the [emunix] stanza
 build/repo-build.sh        builds every PKGBUILD in the Arch container, signs, repo-adds
 build/repo.sh              runs repo-build.sh in the container and optionally publishes
 ```
+
+## Build order
+
+`build/repo-build.sh` builds `packages/order` top to bottom, not the alphabetical directory
+order, and installs each package into the build container as soon as it is built (the
+`emunix-keyring` package excepted: it is not a build dependency, and its `.install` adds the
+`[emunix]` stanza, which would make every later `pacman` call require a repository the build
+container does not serve). That matters because `emulationstation-de` lists `freeimage` in
+`makedepends`: `makepkg --syncdeps` resolves against the container, where `freeimage` is not in
+any official repository, so it must already be installed there. The script fails if
+`packages/order` and the `packages/*/` directories disagree, so a new package cannot be added
+unordered.
+
+The AUR-shaped packages are pinned to the AUR commit their PKGBUILD came from, recorded in a
+comment at the top of each PKGBUILD, and to a checksummed source tarball.
 
 ## Signing key
 
@@ -75,7 +91,7 @@ The `emunix-keyring` package installs the public key and the stanza:
 sudo pacman -S emunix-keyring
 sudo pacman-key --init
 sudo pacman-key --populate emunix
-sudo pacman -S ryzenadj
+sudo pacman -S emulationstation-de    # pulls freeimage and ryzenadj from [emunix]
 ```
 
 Or add the stanza by hand and trust the key:
@@ -108,6 +124,8 @@ carries only `emunix.gpg`. To check any checkout or mounted image (the docs and 
 the markers, so they are excluded — a real key file would not be one):
 
 ```sh
-grep -rIl 'BEGIN PGP PRIVATE KEY BLOCK' . --exclude='*.md' --exclude='*.sh'   # expected no hits
-grep -rIl 'minisign encrypted secret key' . --exclude='*.md' --exclude='*.sh' # expected no hits
+grep -rIq --exclude-dir=.git --exclude-dir=work --exclude-dir=out \
+  --exclude='*.md' --exclude='*.sh' -- 'BEGIN PGP PRIVATE KEY BLOCK' .   # expected: no output, rc=1
+grep -rIq --exclude-dir=.git --exclude-dir=work --exclude-dir=out \
+  --exclude='*.md' --exclude='*.sh' -- 'minisign encrypted secret key' . # expected: no output, rc=1
 ```

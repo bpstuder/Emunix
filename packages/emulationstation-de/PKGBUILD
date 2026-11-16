@@ -1,0 +1,26 @@
+# emulationstation-de 3.5.0, the ES-DE frontend. Mirrors the AUR package of the same name at
+# commit 49541b7e279060da1868de81a97135a51ef89aaf; it lives here so the image build installs it
+# from [emunix] instead of building it from AUR (profiles/aur.txt).
+# The upstream tarball is the stable-3.5-AUR branch archive, pinned by sha256.
+pkgname=emulationstation-de
+pkgver=3.5.0
+pkgrel=1
+pkgdesc="ES-DE (EmulationStation Desktop Edition) is a frontend for browsing and launching games from your multi-platform collection"
+arch=('x86_64')
+url="https://es-de.org"
+license=('MIT')
+depends=('bluez-libs' 'curl' 'ffmpeg' 'freeimage' 'freetype2' 'gettext' 'harfbuzz' 'icu' 'libgit2' 'poppler' 'pugixml' 'sdl2')
+makedepends=('cmake' 'bluez-libs' 'curl' 'pkgconf' 'make' 'ffmpeg' 'freeimage' 'freetype2' 'gettext' 'harfbuzz' 'icu' 'libgit2' 'poppler' 'pugixml' 'sdl2')
+options=('!debug')
+source=("emulationstation-de-stable-3.5-AUR_${pkgver}-${pkgrel}.tar.gz::https://gitlab.com/es-de/emulationstation-de/-/archive/stable-3.5-AUR/emulationstation-de-stable-3.5-AUR.tar.gz")
+sha256sums=('a312fa24442b329a53bcb35c6b8d7cd5003390c95edf23673e0c6dea9ed51138')
+
+build() {
+	export CXXFLAGS=""
+	cmake -DAUR_BUILD=on -B emulationstation-de-stable-3.5-AUR -S emulationstation-de-stable-3.5-AUR
+	make -C emulationstation-de-stable-3.5-AUR -j6
+}
+
+package() {
+	make -C emulationstation-de-stable-3.5-AUR DESTDIR="${pkgdir}" install
+}

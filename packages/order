@@ -1,0 +1,10 @@
+# Build order for packages/. build/repo-build.sh builds top to bottom, so a dependency is
+# built (and installed into the build container) before what needs it: emulationstation-de
+# lists freeimage in makedepends, and makepkg --syncdeps must find it already installed.
+#
+# Every packages/*/ directory with a PKGBUILD must appear exactly once; repo-build.sh fails
+# if the list and the directory disagree, so a new package cannot be added unordered.
+emunix-keyring
+freeimage
+ryzenadj
+emulationstation-de

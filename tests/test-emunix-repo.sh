@@ -76,6 +76,73 @@ done
 	[ -f "$REPO_ROOT/packages/emunix-keyring/emunix-trusted" ] ||
 	{ say "FAIL: the committed public key or trusted fingerprint is missing"; fails=$((fails + 1)); }
 
+# --- packages/order: the build order is explicit, complete and dependency-correct ---
+ORDER="$REPO_ROOT/packages/order"
+[ -f "$ORDER" ] || { say "FAIL: no build order at $ORDER"; fails=$((fails + 1)); }
+order_names=()
+while read -r n _; do
+	[ -n "$n" ] || continue
+	order_names+=("$n")
+done < <(sed 's/#.*//; s/[[:space:]]*$//' "$ORDER" 2>/dev/null | grep -v '^[[:space:]]*$')
+[ ${#order_names[@]} -gt 0 ] || { say "FAIL: $ORDER is empty"; fails=$((fails + 1)); }
+
+declare -A seen=()
+order_ok=1
+for n in "${order_names[@]}"; do
+	if [ ! -f "$REPO_ROOT/packages/$n/PKGBUILD" ]; then
+		say "FAIL: $ORDER lists $n, which has no PKGBUILD"; order_ok=0
+	fi
+	if [ -n "${seen[$n]:-}" ]; then
+		say "FAIL: $ORDER lists $n more than once"; order_ok=0
+	fi
+	seen[$n]=1
+done
+for d in "$REPO_ROOT"/packages/*/; do
+	n=$(basename "$d")
+	[ -f "$d/PKGBUILD" ] || continue
+	if [ -z "${seen[$n]:-}" ]; then
+		say "FAIL: packages/$n has a PKGBUILD but is absent from $ORDER"; order_ok=0
+	fi
+done
+[ "$order_ok" -eq 1 ] && say "ok   packages/order covers every package exactly once" || fails=$((fails + 1))
+
+freeimage_at=-1
+esde_at=-1
+i=0
+for n in "${order_names[@]}"; do
+	[ "$n" = freeimage ] && freeimage_at=$i
+	[ "$n" = emulationstation-de ] && esde_at=$i
+	i=$((i + 1))
+done
+if [ "$freeimage_at" -ge 0 ] && [ "$esde_at" -ge 0 ] && [ "$freeimage_at" -lt "$esde_at" ]; then
+	say "ok   freeimage is built before emulationstation-de"
+else
+	say "FAIL: freeimage must precede emulationstation-de in $ORDER"; fails=$((fails + 1))
+fi
+
+# The two packages are pinned by checksum, not SKIP.
+for pb in freeimage emulationstation-de; do
+	if grep -q 'SKIP' "$REPO_ROOT/packages/$pb/PKGBUILD"; then
+		say "FAIL: packages/$pb/PKGBUILD pins nothing (SKIP)"; fails=$((fails + 1))
+	else
+		say "ok   packages/$pb/PKGBUILD has no SKIP checksum"
+	fi
+done
+
+# They are installed from [emunix], not built from AUR.
+for p in freeimage emulationstation-de; do
+	if sed 's/#.*//' "$REPO_ROOT/profiles/aur.txt" | grep -qE "^$p([[:space:]]|$)"; then
+		say "FAIL: profiles/aur.txt still builds $p from AUR"; fails=$((fails + 1))
+	else
+		say "ok   profiles/aur.txt no longer builds $p"
+	fi
+done
+grep -q 'pacman -S --noconfirm emunix-keyring ryzenadj freeimage emulationstation-de' \
+	"$REPO_ROOT/build/build-image.sh" ||
+	{ say "FAIL: build-image.sh does not install freeimage + emulationstation-de"; fails=$((fails + 1)); }
+grep -q "pacman -S --print-format '%r'" "$REPO_ROOT/build/build-image.sh" ||
+	{ say "FAIL: build-image.sh does not assert the [emunix] provenance"; fails=$((fails + 1)); }
+
 if [ "$fails" -ne 0 ]; then
 	printf '%d test(s) failed\n' "$fails" >&2
 	exit 1

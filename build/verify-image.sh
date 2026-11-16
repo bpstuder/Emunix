@@ -51,6 +51,7 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/pacman.conf etc/sudoers.d/10-wheel \
   etc/systemd/system/multi-user.target.wants/NetworkManager.service \
   usr/bin/es-de usr/lib/libretro/nestopia_libretro.so usr/bin/gamescope \
+  usr/lib/libfreeimage.so \
   usr/local/bin/emunix-session etc/systemd/user/emunix-session.service \
   usr/local/bin/emunix-firstboot etc/systemd/system/firstboot.service \
   etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
