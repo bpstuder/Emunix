@@ -104,8 +104,19 @@ need=$((size + size / 10))
 
 name=$(basename "$url")
 file=$CACHE_DIR/$name
-curl -fSL -C - -o "$file" "$url" || die "cannot download $url"
-verify_image "$file" "$sha256" "$size" || die "the downloaded image does not match the manifest; $target was not touched"
+# -C - can only resume a file shorter than the artifact: a complete-but-wrong one (a run that died
+# after the download, or a bad mirror) answers the range at EOF with 416 and every later run would
+# fail before the hash was checked. Trust a cached file that matches the manifest, drop anything
+# else that is not resumable, and resume a genuine partial.
+if [ -f "$file" ] && verify_image "$file" "$sha256" "$size" 2>/dev/null; then
+  printf 'emunix-os-updater: %s is already downloaded and matches the manifest\n' "$file"
+else
+  if [ -f "$file" ] && [ "$(stat -c %s "$file")" -ge "$size" ]; then
+    rm -f "$file"
+  fi
+  curl -fSL -C - -o "$file" "$url" || die "cannot download $url"
+  verify_image "$file" "$sha256" "$size" || die "the downloaded image does not match the manifest; $target was not touched"
+fi
 
 # The release artifact is a full GPT disk image; the slot needs only its rootfs_a partition. Stream
 # that partition into the slot so the 24 GiB raw image never touches /var (2 GiB): the manifest

@@ -54,11 +54,11 @@ printf '2026.11.11\n' >"$UT/version"
 
 cat >"$UT/bin/curl" <<'STUB'
 #!/bin/bash
-out=""; url=""
+out=""; url=""; resume=0
 while [ $# -gt 0 ]; do
   case $1 in
     -o) out=$2; shift 2 ;;
-    -C) shift 2 ;;
+    -C) resume=1; shift 2 ;;
     -*) shift ;;
     *) url=$1; shift ;;
   esac
@@ -66,7 +66,22 @@ done
 case $url in
   */emunix.json.minisig) cat "$STUB_SIG" >"$out" ;;
   */emunix.json) cat "$STUB_MANIFEST" >"$out" ;;
-  *) cat "$STUB_IMAGE" >"$out" ;;
+  *)
+    # -C - asks for a range; a server answers a complete file with 416 and curl -f fails, which is
+    # what a real CDN does and what the cache check in the updater has to survive.
+    have=0
+    [ -f "$out" ] && have=$(stat -c %s "$out")
+    want=$(stat -c %s "$STUB_IMAGE")
+    if [ "$resume" -eq 1 ]; then
+      if [ "$have" -ge "$want" ]; then
+        printf 'curl: (22) The requested URL returned error: 416\n' >&2
+        exit 22
+      fi
+      tail -c "+$((have + 1))" "$STUB_IMAGE" >>"$out"
+      exit 0
+    fi
+    cat "$STUB_IMAGE" >"$out"
+    ;;
 esac
 STUB
 cat >"$UT/bin/dd" <<'STUB'
@@ -274,6 +289,28 @@ EOF
   printf '%s\n' "$out" | grep -q 'not enough free space' || fail "the ESP free-space refusal was not shown: $out"
   grep -q 'slot next' "$UT/calls" && fail "a full ESP still flipped the loader"
   [ "$(cat "$UT/esp/vmlinuz-linux")" = "old kernel" ] || fail "a full ESP still replaced the kernel"
+
+  # 11. A run that died after the download leaves a complete artifact in the cache (verify failure,
+  # a failed slot write, a power cut). The retry must reuse it: curl -C - cannot resume a complete
+  # file, so without the cache check the next run dies before the hash is ever computed.
+  cp "$UT/disk.img.zst" "$UT/cache/emunix-2026.11.13-x86_64.img.zst"
+  : >"$UT/calls"
+  out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
+    STUB_IMAGE="$UT/disk.img.zst" -- 2>&1) && rc=0 || rc=$?
+  [ "$rc" -eq 0 ] || fail "a retry with a complete cached artifact failed: $out"
+  printf '%s\n' "$out" | grep -q 'is already downloaded and matches the manifest' ||
+    fail "the cached artifact was not reused: $out"
+  grep -q 'slot next b' "$UT/calls" || fail "the cached-artifact retry did not flip the loader"
+
+  # 12. A cached artifact of the right size but the wrong bytes (a bad mirror, bit rot) is dropped
+  # and downloaded again instead of wedging every later run.
+  head -c "$ZSIZE" /dev/zero >"$UT/cache/emunix-2026.11.13-x86_64.img.zst"
+  : >"$UT/calls"
+  out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
+    STUB_IMAGE="$UT/disk.img.zst" -- 2>&1) && rc=0 || rc=$?
+  [ "$rc" -eq 0 ] || fail "a wrong cached artifact blocked the update: $out"
+  printf '%s\n' "$out" | grep -q 'staged 2026.11.13 on slot b' || fail "the stale-cache run did not stage: $out"
+  grep -q "of=$UT/parts/rootfs_b" "$UT/calls" || fail "the slot was not written from the re-download"
 else
   printf 'skip: the write tests need root for block-device nodes\n'
 fi
