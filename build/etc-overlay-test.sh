@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# Prove /etc is writable on the read-only root and owned by the slot: boot 1 writes /etc/hostname
-# and a NetworkManager profile, boot 2 still has both with the root still read-only, and a boot
-# from the other root slot starts from that image's /etc again.
+# Prove /etc belongs to the device and not to the root slot, over two A/B cycles.
 #
-# The image's rootfs_b ships empty, so the slot switch copies rootfs_a into rootfs_b first: that
-# is what an A/B update does to the inactive slot. Requires root (loop mount), qemu-system-x86,
-# edk2-ovmf, expect, socat, gptfdisk. Usage: etc-overlay-test.sh <emunix.img> [evidence-dir]
+# Cycle 1 boots the image on slot a, writes the settings a user writes (hostname, a Wi-Fi profile,
+# a new password), then installs an image into slot b — fresh ext4, the image's rootfs, and a
+# marker file in its /etc that the device never wrote — and boots it: every setting is still there,
+# the marker from the new image is visible, and the shipped password no longer authenticates.
+# Cycle 2 re-images slot a and boots back to it: the same properties again. That second cycle is
+# the one that used to fail: a slot-keyed upper carries the previous lower's generation and the
+# mount dies with "Stale file handle".
+#
+# Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect, socat, gptfdisk, e2fsprogs.
+# Usage: etc-overlay-test.sh <emunix.img> [evidence-dir]
 set -euo pipefail
 IMG=${1:?usage: etc-overlay-test.sh <emunix.img> [evidence-dir]}
 OUT=${2:-$(dirname "$0")/../evidence}
@@ -13,7 +18,9 @@ OUT=${2:-$(dirname "$0")/../evidence}
 [ "$(id -u)" -eq 0 ] || { echo "etc-overlay-test.sh must run as root (loop mount)" >&2; exit 1; }
 OVMF=/usr/share/edk2/x64
 [ -f "$OVMF/OVMF_CODE.4m.fd" ] || { echo "edk2-ovmf is not installed ($OVMF)" >&2; exit 1; }
-command -v expect socat >/dev/null || { echo "expect and socat are required" >&2; exit 1; }
+for c in expect socat mkfs.ext4; do
+  command -v "$c" >/dev/null || { echo "$c is required" >&2; exit 1; }
+done
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source-path=SCRIPTDIR
@@ -26,15 +33,26 @@ WORK=$(mktemp -d)
 DISK=$WORK/disk.img
 ACCEL=tcg; [ -w /dev/kvm ] && ACCEL=kvm
 SOCK=$WORK/qmp.sock
-trap 'pkill -f "[q]emu-system-x86_64" 2>/dev/null || true; umount -R "$WORK" 2>/dev/null || true; rm -rf "$WORK"' EXIT
+# The password the user sets in cycle 1; it must be the one that logs in on both updates after it.
+USERPW=cycle1pw
+cleanup() {
+  pkill -f "[q]emu-system-x86_64" 2>/dev/null || true
+  umount -R "$WORK" 2>/dev/null || true
+  # Detach only this image's loop device: a leftover one keeps the 24 GiB copy alive.
+  for l in $(losetup -j "$DISK" -O NAME --noheadings 2>/dev/null); do
+    losetup -d "$l" 2>/dev/null || true
+  done
+  rm -rf "$WORK"
+}
+trap cleanup EXIT
 : >"$LOG"
 echo "image $IMG, accel $ACCEL" | tee -a "$LOG"
 
 cp --sparse=always "$IMG" "$DISK"
 cp "$OVMF/OVMF_VARS.4m.fd" "$WORK/OVMF_VARS.fd"
 
-# firstboot (card 05) replaces the shipped password and grows the disk; this test needs neither,
-# so the copy is marked initialized and the shipped password keeps working.
+# firstboot grows the disk and seeds /storage; this test needs neither, so the copy is marked
+# initialized and the shipped password keeps working.
 MNT=$WORK/mnt
 mkdir -p "$MNT"
 LOOP=$(attach_image "$DISK")
@@ -45,7 +63,9 @@ umount "$MNT"
 losetup -d "$LOOP"
 
 # One QEMU boot: log in, validate sudo once, run the command line from a file, wait for its end
-# marker, power the VM down. The commands come from a file so Tcl never sees a quote.
+# marker, power the VM down. The commands come from a file so Tcl never sees a quote. The shipped
+# password is always tried first: <shipped-ok> says whether that attempt must succeed (a fresh
+# image) or be rejected (after the user changed it), and <pw> is the password that must work.
 cat >"$WORK/boot.exp" <<'EXPECT'
 set img   [lindex $argv 0]
 set log   [lindex $argv 1]
@@ -55,6 +75,8 @@ set accel [lindex $argv 4]
 set sock  [lindex $argv 5]
 set cmds  [lindex $argv 6]
 set tag   [lindex $argv 7]
+set pw    [lindex $argv 8]
+set shipped_ok [lindex $argv 9]
 set timeout 900
 log_file -a $log
 proc qmp {json} {
@@ -75,22 +97,40 @@ expect {
 }
 expect -re {[Pp]assword: }
 send "retrogamer\r"
-expect {
-  -re {\[retrogamer@[^]]*\]\$ } {}
-  -re {Login incorrect} { puts stderr "the shipped password was rejected"; exit 1 }
-  timeout { puts stderr "no shell after login"; exit 1 }
+if {$shipped_ok} {
+  expect {
+    -re {\[retrogamer@[^]]*\]\$ } {}
+    -re {Login incorrect} { puts stderr "the shipped password does not log in"; exit 1 }
+    timeout { puts stderr "no shell after login"; exit 1 }
+  }
+} else {
+  expect {
+    -re {Login incorrect} { puts "shipped password rejected" }
+    -re {\[retrogamer@[^]]*\]\$ } { puts stderr "the shipped password still logs in"; exit 1 }
+    timeout { puts stderr "no verdict on the shipped password"; exit 1 }
+  }
+  expect -re {login: }
+  send "retrogamer\r"
+  expect -re {[Pp]assword: }
+  send "$pw\r"
+  expect {
+    -re {\[retrogamer@[^]]*\]\$ } {}
+    -re {Login incorrect} { puts stderr "the user's password does not log in"; exit 1 }
+    timeout { puts stderr "no shell with the user's password"; exit 1 }
+  }
 }
 send "sudo -v\r"
 # sudo prompts "password for <user>:" (not just "Password:") on the first use in a boot.
 expect -re {[Pp]assword for [^:\r\n]*: |[Pp]assword: }
-send "retrogamer\r"
+send "$pw\r"
 expect -re {\[retrogamer@[^]]*\]\$ }
 set f [open $cmds]
 set line [read $f]
 close $f
 send "$line\r"
+# The end marker on its own line: the echoed command line carries it too.
 expect {
-  -re $tag {}
+  -re "\n$tag" {}
   timeout { puts stderr "the commands did not finish"; exit 1 }
 }
 after 2000
@@ -102,65 +142,107 @@ expect {
 exit 0
 EXPECT
 
-boot() { # <name> <cmds file> <end marker>
+boot() { # <name> <cmds file> <end marker> <password> <shipped-ok 1|0>
   echo "=== $1" | tee -a "$LOG"
   set +e
   expect "$WORK/boot.exp" "$DISK" "$LOG" "$OVMF/OVMF_CODE.4m.fd" "$WORK/OVMF_VARS.fd" \
-    "$ACCEL" "$SOCK" "$2" "$3"
+    "$ACCEL" "$SOCK" "$2" "$3" "$4" "$5"
   local rc=$?
   set -e
   rm -f "$SOCK"
   [ "$rc" -eq 0 ] || { echo "FAIL: $1 did not finish (expect rc=$rc)" >&2; echo "transcript: $LOG" >&2; exit 1; }
 }
 
-# --- Boot 1: write /etc twice, the two ways that matter (hostname, NetworkManager).
+# An image update writes a fresh image into the inactive slot: new ext4 (new UUID), the current
+# image's rootfs, and a marker in its /etc that the device has never written. Anything the user set
+# must survive from the device-wide upper; anything they never touched must come from here.
+reimage() { # <slot> <marker text>
+  local slot=$1 marker=$2 part other loop src=$WORK/src mnt=$WORK/mnt
+  case $slot in
+    a) part=p2; other=p3 ;;
+    b) part=p3; other=p2 ;;
+  esac
+  loop=$(attach_image "$DISK")
+  mkdir -p "$mnt" "$src"
+  mkfs.ext4 -q -F -L "rootfs_$slot" "${loop}$part"
+  mount "${loop}$part" "$mnt"
+  mount -o ro "${loop}$other" "$src"
+  cp -a "$src/." "$mnt/"
+  umount "$src"
+  printf '%s\n' "$marker" >"$mnt/etc/emunix-image-marker"
+  chmod 0644 "$mnt/etc/emunix-image-marker"
+  umount "$mnt"
+  losetup -d "$loop"
+}
+
+flip() { # <slot> -> points the loader at the slot, the way an update does
+  local loop
+  loop=$(attach_image "$DISK")
+  mkdir -p "$WORK/esp"
+  mount "${loop}p1" "$WORK/esp"
+  printf 'default emunix-%s.conf\ntimeout 3\n' "$1" >"$WORK/esp/loader/loader.conf"
+  umount "$WORK/esp"
+  losetup -d "$loop"
+}
+
+# --- Cycle 1, boot 1 (slot a): the settings a user makes on a running device.
 cat >"$WORK/cmds1" <<'EOF'
-echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo emunix-overlay-test | sudo tee /etc/hostname; echo "WROTE-HOSTNAME: $(cat /etc/hostname)"; sudo nmcli connection add type wifi con-name emunix-test ssid emunix-test; echo "NM-CON-ADD-RC=$?"; sudo ls -l /etc/NetworkManager/system-connections/; echo "OVERLAY-TREE-B1: $(sudo find /var/lib/emunix/overlay -maxdepth 4 | sort | tr '\n' ' ')"; echo ETC-OVERLAY-BOOT1-END
+echo "ROOT-MOUNT-B1: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT-B1: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo emunix-cycle1 | sudo tee /etc/hostname; sudo hostnamectl set-hostname emunix-cycle1; echo "WROTE-HOSTNAME: $(cat /etc/hostname)"; sudo nmcli connection add type wifi con-name emunix-cycle1 ssid emunix-cycle1; echo "NM-CON-ADD-RC=$?"; echo 'retrogamer:cycle1pw' | sudo chpasswd; echo "SET-PASSWORD-RC=$?"; echo "PASSWD-STATUS-B1: $(sudo passwd -S retrogamer)"; echo "UPPER-TREE-B1: $(sudo find /var/lib/emunix/etc -maxdepth 3 | sort | tr '\n' ' ')"; echo ETC-OVERLAY-BOOT1-END
 EOF
-boot "boot 1: write /etc on the read-only root" "$WORK/cmds1" "ETC-OVERLAY-BOOT1-END"
+boot "boot 1: slot a, write /etc" "$WORK/cmds1" ETC-OVERLAY-BOOT1-END retrogamer 1
 
-# --- Boot 2: both writes must be back, from /var, with / still read-only.
+# --- Cycle 1, image slot b and boot it.
+echo "=== cycle 1: image slot b, flip the loader to it" | tee -a "$LOG"
+reimage b "new image in cycle 1"
+flip b
 cat >"$WORK/cmds2" <<'EOF'
-echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE: $(cat /etc/hostname)"; echo "HOSTNAME-RUNNING: $(hostnamectl hostname)"; echo "NM-PROFILES-B2: $(nmcli -g NAME connection show | tr '\n' ' ')"; systemctl show -p ActiveState -p Result emunix-etc-overlay; echo ETC-OVERLAY-BOOT2-END
+echo "ROOT-MOUNT-B2: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT-B2: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE-B2: $(cat /etc/hostname)"; echo "HOSTNAME-RUNNING-B2: $(hostnamectl hostname)"; echo "NM-PROFILES-B2: $(nmcli -g NAME connection show | tr '\n' ' ')"; echo "MARKER-B2: $(cat /etc/emunix-image-marker)"; echo "PASSWD-STATUS-B2: $(sudo passwd -S retrogamer)"; echo "UPPER-TREE-B2: $(sudo find /var/lib/emunix/etc -maxdepth 3 | sort | tr '\n' ' ')"; systemctl show -p ActiveState -p Result emunix-etc-overlay; echo ETC-OVERLAY-BOOT2-END
 EOF
-boot "boot 2: reboot, nothing written since" "$WORK/cmds2" "ETC-OVERLAY-BOOT2-END"
+boot "boot 2: slot b, the image installed in cycle 1" "$WORK/cmds2" ETC-OVERLAY-BOOT2-END "$USERPW" 0
 
-# --- Slot switch: an update writes the image into the inactive slot and points the loader at it.
-echo "=== slot switch: rootfs_a -> rootfs_b" | tee -a "$LOG"
-LOOP=$(attach_image "$DISK")
-mkdir -p "$WORK/a" "$WORK/b" "$WORK/esp"
-mount "${LOOP}p2" "$WORK/a"
-mount "${LOOP}p3" "$WORK/b"
-cp -a "$WORK/a/." "$WORK/b/"
-umount "$WORK/a" "$WORK/b"
-mount "${LOOP}p1" "$WORK/esp"
-printf 'default emunix-b.conf\ntimeout 3\n' >"$WORK/esp/loader/loader.conf"
-umount "$WORK/esp"
-losetup -d "$LOOP"
-
-# --- Boot 3: the other slot sees its own /etc; slot a's writes are still on /var, untouched.
+# --- Cycle 2, image slot a again and boot it: the cycle that used to lose /etc.
+echo "=== cycle 2: image slot a, flip the loader back to it" | tee -a "$LOG"
+reimage a "new image in cycle 2"
+flip a
 cat >"$WORK/cmds3" <<'EOF'
-echo "ROOT-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE: $(cat /etc/hostname)"; echo "NM-PROFILES-B3: $(nmcli -g NAME connection show | tr '\n' ' ')"; echo "SLOT-A-ETC-HOSTNAME: $(sudo sed -n 1p /var/lib/emunix/overlay/etc/a/upper/hostname)"; echo ETC-OVERLAY-BOOT3-END
+echo "ROOT-MOUNT-B3: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /)"; echo "ETC-MOUNT-B3: $(findmnt -no TARGET,SOURCE,FSTYPE,OPTIONS /etc)"; echo "HOSTNAME-FILE-B3: $(cat /etc/hostname)"; echo "HOSTNAME-RUNNING-B3: $(hostnamectl hostname)"; echo "NM-PROFILES-B3: $(nmcli -g NAME connection show | tr '\n' ' ')"; echo "MARKER-B3: $(cat /etc/emunix-image-marker)"; echo "PASSWD-STATUS-B3: $(sudo passwd -S retrogamer)"; echo "UPPER-TREE-B3: $(sudo find /var/lib/emunix/etc -maxdepth 3 | sort | tr '\n' ' ')"; systemctl show -p ActiveState -p Result emunix-etc-overlay; echo ETC-OVERLAY-BOOT3-END
 EOF
-boot "boot 3: the other root slot" "$WORK/cmds3" "ETC-OVERLAY-BOOT3-END"
+boot "boot 3: slot a again, the image installed in cycle 2" "$WORK/cmds3" ETC-OVERLAY-BOOT3-END "$USERPW" 0
 
 # --- The claims, read back out of the transcript.
 fail() { echo "FAIL: $*" >&2; echo "transcript: $LOG" >&2; exit 1; }
-grep -q 'ROOT-MOUNT: / .* ext4 ro' "$LOG" || fail "the root is not read-only"
-grep -q 'ETC-MOUNT: /etc .* overlay .*upperdir=/var/lib/emunix/overlay/etc/a/upper' "$LOG" ||
-  fail "/etc is not an overlay over slot a's upper directory"
-grep -q 'WROTE-HOSTNAME: emunix-overlay-test' "$LOG" || fail "the hostname write bounced"
-grep -q 'NM-CON-ADD-RC=0' "$LOG" || fail "nmcli could not add a profile"
-grep -q 'emunix-test.nmconnection' "$LOG" || fail "no keyfile was written to /etc/NetworkManager"
-grep -q 'HOSTNAME-FILE: emunix-overlay-test' "$LOG" || fail "the hostname did not survive the reboot"
-grep -q 'HOSTNAME-RUNNING: emunix-overlay-test' "$LOG" || fail "the hostname did not come back at boot"
-grep -q 'NM-PROFILES-B2: .*emunix-test' "$LOG" || fail "the NetworkManager profile did not survive the reboot"
-grep -q 'ActiveState=active' "$LOG" || fail "the overlay unit is not active after the reboot"
-grep -q 'ETC-MOUNT: /etc .*overlay .*upperdir=/var/lib/emunix/overlay/etc/b/upper' "$LOG" ||
-  fail "slot b did not get its own upper directory"
-grep -q 'HOSTNAME-FILE: emunix' "$LOG" || fail "slot b did not start from the image's /etc"
-if grep -q 'NM-PROFILES-B3: .*emunix-test' "$LOG"; then fail "slot b inherited slot a's NetworkManager profile"; fi
-grep -q 'SLOT-A-ETC-HOSTNAME: emunix-overlay-test' "$LOG" || fail "slot a's writes were not left on /var"
+for b in 1 2 3; do
+  grep -q "ROOT-MOUNT-B$b: / .* ext4 ro" "$LOG" || fail "boot $b: the root is not read-only"
+  grep -q "ETC-MOUNT-B$b: /etc .* overlay .*upperdir=/var/lib/emunix/etc/upper,workdir=/var/lib/emunix/etc/work,index=off" "$LOG" ||
+    fail "boot $b: /etc is not the device-wide overlay"
+done
+if grep -q 'upperdir=/var/lib/emunix/overlay/etc/[ab]/' "$LOG"; then
+  fail "the /etc upper is still keyed by the root slot"
+fi
+grep -q 'WROTE-HOSTNAME: emunix-cycle1' "$LOG" || fail "the hostname write bounced"
+grep -q 'NM-CON-ADD-RC=0' "$LOG" || fail "nmcli could not add a Wi-Fi profile"
+grep -q 'SET-PASSWORD-RC=0' "$LOG" || fail "the user's password was not set"
+grep -q 'PASSWD-STATUS-B1: retrogamer P ' "$LOG" || fail "passwd -S retrogamer is not P on boot 1"
+grep -q 'ActiveState=active' "$LOG" || fail "the overlay unit is not active after the update"
 
-echo "/etc overlay: ro root with a writable /etc, hostname and NM profile survive a reboot, slot b starts fresh"
+# Cycle 1: the settings are kept, and the marker from the new image is what /etc shows.
+grep -q 'HOSTNAME-FILE-B2: emunix-cycle1' "$LOG" || fail "boot 2: the hostname did not survive the update"
+grep -q 'HOSTNAME-RUNNING-B2: emunix-cycle1' "$LOG" || fail "boot 2: the hostname did not come back at boot"
+grep -q 'NM-PROFILES-B2: .*emunix-cycle1' "$LOG" || fail "boot 2: the Wi-Fi profile did not survive the update"
+grep -q 'MARKER-B2: new image in cycle 1' "$LOG" || fail "boot 2: the new image's /etc file is not visible"
+grep -q 'PASSWD-STATUS-B2: retrogamer P ' "$LOG" || fail "boot 2: retrogamer has no password"
+grep -q 'upper/shadow' "$LOG" || fail "boot 2: /etc/shadow is not in the device-wide upper"
+
+# Cycle 2: the same after the other slot has been re-imaged.
+grep -q 'HOSTNAME-FILE-B3: emunix-cycle1' "$LOG" || fail "boot 3: the hostname was lost by the second update"
+grep -q 'HOSTNAME-RUNNING-B3: emunix-cycle1' "$LOG" || fail "boot 3: the hostname did not come back at boot"
+grep -q 'NM-PROFILES-B3: .*emunix-cycle1' "$LOG" || fail "boot 3: the Wi-Fi profile was lost by the second update"
+grep -q 'MARKER-B3: new image in cycle 2' "$LOG" || fail "boot 3: the second image's /etc file is not visible"
+grep -q 'PASSWD-STATUS-B3: retrogamer P ' "$LOG" || fail "boot 3: retrogamer has no password"
+
+# The password never changes itself: the shipped one was rejected on both updates (boot.exp exits
+# non-zero otherwise) and the user's one logged in.
+[ "$(grep -c 'Login incorrect' "$LOG")" -ge 2 ] || fail "the shipped password was not rejected on both updates"
+
+echo "/etc overlay: one upper for the device; hostname, Wi-Fi profile and password survive two A/B updates, new-image files still follow the image"
 echo "transcript: $LOG"

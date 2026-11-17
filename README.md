@@ -1,8 +1,14 @@
 # Emunix
 
 **Emunix** — an immutable, Arch-based Linux distribution for x86_64 handhelds (then desktops),
-booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, persistent
-`/storage` for ROMs/bios/saves/states. See `INSTALL.md` for flashing and build instructions.
+booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, and persistent
+state: `/storage` for ROMs/bios/saves/states, and `/etc` for Wi-Fi profiles, the hostname, users
+and the timezone, so an image update keeps your settings. See `INSTALL.md` for flashing and build
+instructions.
+
+The image ships the public password `retrogamer`/`retrogamer` and nothing forces a change: run
+`passwd` before you take the device anywhere you do not control. There is no `sshd`, so it guards
+the console and `sudo`, not a network service.
 
 
 ## Layout
@@ -118,8 +124,8 @@ sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<version>-x86_64.
 sudo ./build/verify-image.sh out/emunix-*-x86_64.img
 sudo ./build/boot-test.sh out/emunix-*-x86_64.img  # QEMU + OVMF, login on ttyS0
 sudo ./build/session-test.sh out/emunix-*-x86_64.img  # QEMU + virtio-vga: ES-DE session, screenshots
-sudo ./build/firstboot-test.sh out/emunix-*-x86_64.img  # two boots on a bigger disk: growth, /storage, password
-sudo ./build/etc-overlay-test.sh out/emunix-*-x86_64.img  # writable /etc, survives reboot
+sudo ./build/firstboot-test.sh out/emunix-*-x86_64.img  # two boots on a bigger disk: growth, /storage, shipped password kept until passwd
+sudo ./build/etc-overlay-test.sh out/emunix-*-x86_64.img  # two A/B cycles: /etc settings survive the update
 sudo ./build/slot-test.sh out/emunix-*-x86_64.img  # four boots: next/once and the kernel cmdline follow the slot
 sudo ./build/updater-test.sh out/emunix-*-x86_64.img  # signed v1->v2, corrupt aborts
 sudo ./build/health-test.sh out/emunix-*-x86_64.img  # two failed boots roll back

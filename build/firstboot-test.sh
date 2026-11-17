@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Prove the first boot of a flashed Emunix image: the last partition grows into the rest of the
-# device, /storage gets its ROM tree owned by retrogamer, the shipped password stops
-# authenticating, and a second boot does not run the unit again.
+# device, /storage gets its ROM tree owned by retrogamer, the shipped password is left alone (and
+# `passwd` is what changes it), and a second boot does not run the unit again.
 #
 # The image copy is enlarged by GROW_SIZE before the first boot: that is what flashing a 24 GiB
 # image onto a bigger device looks like. Requires root (loop mount), qemu-system-x86, edk2-ovmf,
@@ -58,7 +58,7 @@ spawn qemu-system-x86_64 -machine q35 -accel $accel -m 3072 -smp 4 -vga none \
   -drive if=pflash,format=raw,file=$vars \
   -drive file=$img,format=raw,if=virtio -no-reboot \
   -serial stdio
-# No key is sent anywhere: the unit must finish on its own, with the prompt unanswered.
+# No key is sent anywhere: the unit must finish on its own.
 expect {
   -re {emunix-firstboot: first boot complete} {}
   -re {Bailing out|Kernel panic|No bootable device} { puts stderr "boot failed before userspace"; exit 1 }
@@ -76,23 +76,32 @@ RC=$?
 set -e
 [ "$RC" -eq 0 ] || { echo "FAIL: first boot did not finish on its own (expect rc=$RC)" >&2; exit 1; }
 
-PW=$(sed -n 's/.*generated password for retrogamer: \([A-Za-z0-9-]*\).*/\1/p' "$LOG" | tail -1)
-[ -n "$PW" ] || { echo "FAIL: no generated password in the transcript" >&2; exit 1; }
+# The first boot must not generate, print or set a password any more.
+if grep -q 'generated password' "$LOG"; then
+  echo "FAIL: the first boot still generates a password" >&2
+  exit 1
+fi
+if grep -q 'password for retrogamer' "$LOG"; then
+  echo "FAIL: the first boot still reports a password change" >&2
+  exit 1
+fi
 
+# The password `passwd` will set on the second boot. It must never reach the transcript.
+NEWPW=EmunixCheck-9f3a
 SIZE_AFTER=$(part_size "$DISK")
 echo "last partition after the first boot: $SIZE_AFTER sectors" | tee -a "$LOG"
 rm -f "$SOCK"
 
-# --- Boot 2: the same disk, one password change later.
+# --- Boot 2: the shipped password still works, `passwd` changes it, and the unit does not run.
 set +e
-expect -f - "$DISK" "$LOG" "$OVMF/OVMF_CODE.4m.fd" "$VARS" "$ACCEL" "$SOCK" "$PW" <<'EXPECT'
+expect -f - "$DISK" "$LOG" "$OVMF/OVMF_CODE.4m.fd" "$VARS" "$ACCEL" "$SOCK" "$NEWPW" <<'EXPECT'
 set img   [lindex $argv 0]
 set log   [lindex $argv 1]
 set code  [lindex $argv 2]
 set vars  [lindex $argv 3]
 set accel [lindex $argv 4]
 set sock  [lindex $argv 5]
-set pw    [lindex $argv 6]
+set npw   [lindex $argv 6]
 set timeout 900
 log_file -a $log
 proc qmp {json} {
@@ -107,7 +116,7 @@ spawn qemu-system-x86_64 -machine q35 -accel $accel -m 3072 -smp 4 -vga none \
   -drive file=$img,format=raw,if=virtio -no-reboot \
   -serial stdio
 
-# The shipped password is tried first: this is the exposure the unit exists for.
+# The shipped password is the one that logs in: the first boot did not touch it.
 expect {
   -re {login: } { send "retrogamer\r" }
   timeout { puts stderr "no login prompt on the second boot"; exit 1 }
@@ -115,30 +124,61 @@ expect {
 expect -re {[Pp]assword: }
 send "retrogamer\r"
 expect {
-  -re {Login incorrect} { puts "\nshipped password rejected at the console login" }
-  -re {\[retrogamer@emunix[^]]*\]\$ } { puts stderr "the shipped password still logs in"; exit 1 }
-  timeout { puts stderr "no verdict on the shipped password"; exit 1 }
-}
-# The generated one is the password that works.
-expect -re {login: }
-send "retrogamer\r"
-expect -re {[Pp]assword: }
-send "$pw\r"
-expect {
   -re {\[retrogamer@emunix[^]]*\]\$ } {}
-  -re {login: } { puts stderr "the generated password does not log in"; exit 1 }
-  timeout { puts stderr "no shell on the second boot"; exit 1 }
+  -re {Login incorrect} { puts stderr "the first boot changed the shipped password"; exit 1 }
+  timeout { puts stderr "no shell with the shipped password"; exit 1 }
 }
 
 send "echo EMUNIX-FIRSTBOOT-EVIDENCE\r"
 expect -re {EMUNIX-FIRSTBOOT-EVIDENCE}
-send "echo \"PASSWD-STATUS: \$(passwd -S retrogamer)\"; echo '--- firstboot unit on this boot:'; systemctl show -p ActiveState -p ConditionResult -p Result firstboot; journalctl -b -u firstboot --no-pager | tail -3; echo '--- disk:'; findmnt -no SOURCE,SIZE,TARGET /storage; df -h /storage | tail -1; echo '--- storage tree:'; ls -d /storage/*; ls /storage/roms | tr '\\n' ' '; echo; stat -c '%U:%G %a %n' /storage /storage/roms/nes; touch /storage/roms/nes/.write-test && echo STORAGE-WRITABLE-AS-RETROGAMER && rm /storage/roms/nes/.write-test; echo '--- root fs:'; findmnt -no OPTIONS /; echo '--- the shipped password against pam_unix again (sudo):'; echo retrogamer | sudo -S -k id 2>&1; echo \"SHIPPED-SUDO-RC=\$?\"; echo EMUNIX-FIRSTBOOT-EVIDENCE-A-END\r"
+send "echo \"PASSWD-STATUS: \$(passwd -S retrogamer)\"; echo '--- firstboot unit on this boot:'; systemctl show -p ActiveState -p ConditionResult -p Result firstboot; journalctl -b -u firstboot --no-pager | tail -3; echo '--- disk:'; findmnt -no SOURCE,SIZE,TARGET /storage; df -h /storage | tail -1; echo '--- storage tree:'; ls -d /storage/*; ls /storage/roms | tr '\\\\n' ' '; echo; stat -c '%U:%G %a %n' /storage /storage/roms/nes; touch /storage/roms/nes/.write-test && echo STORAGE-WRITABLE-AS-RETROGAMER && rm /storage/roms/nes/.write-test; echo '--- root fs:'; findmnt -no OPTIONS /; echo '--- the shipped password against pam_unix (sudo):'; echo retrogamer | sudo -S -k id 2>&1; echo \"SHIPPED-SUDO-RC=\$?\"; echo EMUNIX-FIRSTBOOT-EVIDENCE-A-END\r"
 expect {
   -re {EMUNIX-FIRSTBOOT-EVIDENCE-A-END} {}
   timeout { puts stderr "no evidence from the second boot"; exit 1 }
 }
-expect -re {\[retrogamer@emunix[^]]*\]\$ }
-send "echo EMUNIX-FIRSTBOOT-EVIDENCE-END\r"
+
+# `passwd` is what replaces the shipped password.
+send "passwd\r"
+expect -re {[Cc]urrent password: }
+send "retrogamer\r"
+expect -re {[Nn]ew password: }
+send "$npw\r"
+expect -re {[Rr]etype new password: }
+send "$npw\r"
+expect {
+  -re {\[retrogamer@emunix[^]]*\]\$ } {}
+  -re {Authentication token manipulation error|password unchanged} {
+    puts stderr "passwd did not change the password"; exit 1
+  }
+  timeout { puts stderr "passwd never returned"; exit 1 }
+}
+send "echo \"PASSWD-STATUS-AFTER: \$(passwd -S retrogamer)\"; echo EMUNIX-FIRSTBOOT-EVIDENCE-B-END\r"
+expect {
+  -re {EMUNIX-FIRSTBOOT-EVIDENCE-B-END} {}
+  timeout { puts stderr "no evidence after the password change"; exit 1 }
+}
+
+# The shipped password is dead now, and the chosen one is what logs in.
+send "exit\r"
+expect -re {login: }
+send "retrogamer\r"
+expect -re {[Pp]assword: }
+send "retrogamer\r"
+expect {
+  -re {Login incorrect} {}
+  -re {\[retrogamer@emunix[^]]*\]\$ } { puts stderr "the shipped password still logs in after passwd"; exit 1 }
+  timeout { puts stderr "no verdict on the shipped password"; exit 1 }
+}
+expect -re {login: }
+send "retrogamer\r"
+expect -re {[Pp]assword: }
+send "$npw\r"
+expect {
+  -re {\[retrogamer@emunix[^]]*\]\$ } {}
+  -re {Login incorrect} { puts stderr "the new password does not log in"; exit 1 }
+  timeout { puts stderr "no shell with the new password"; exit 1 }
+}
+send "echo CHOSEN-LOGIN-OK; echo EMUNIX-FIRSTBOOT-EVIDENCE-END\r"
 expect -re {EMUNIX-FIRSTBOOT-EVIDENCE-END}
 after 2000
 qmp "{\"execute\":\"system_powerdown\"}"
@@ -152,21 +192,23 @@ RC=$?
 set -e
 [ "$RC" -eq 0 ] || { echo "FAIL: the second boot did not verify (expect rc=$RC)" >&2; exit 1; }
 
-# --- The four claims, read back out of the transcript.
+# --- The claims, read back out of the transcript.
 fail() { echo "FAIL: $*" >&2; echo "transcript: $LOG" >&2; exit 1; }
 grep -q 'CHANGED: partition=5' "$LOG" || fail "growpart did not grow the last partition"
 [ "$SIZE_AFTER" -gt "$SIZE_BEFORE" ] ||
   fail "the last partition did not grow ($SIZE_BEFORE -> $SIZE_AFTER sectors)"
 grep -q 'emunix-firstboot: grew .* into the free space' "$LOG" || fail "firstboot did not report the resize"
-grep -q 'emunix-firstboot: password for retrogamer replaced' "$LOG" || fail "firstboot did not report the password change"
 # The transcript carries the shell's escape sequences in front of the output lines, hence the
 # unanchored markers.
-grep -q 'PASSWD-STATUS: retrogamer P ' "$LOG" || fail "passwd -S retrogamer is not P"
-grep -q 'Login incorrect' "$LOG" || fail "the shipped password was not rejected at the console"
-grep -q 'SHIPPED-SUDO-RC=1' "$LOG" || fail "sudo accepted the shipped password"
+grep -q 'PASSWD-STATUS: retrogamer P ' "$LOG" || fail "passwd -S retrogamer is not P on the second boot"
+grep -q 'PASSWD-STATUS-AFTER: retrogamer P ' "$LOG" || fail "passwd -S retrogamer is not P after the change"
+grep -q 'SHIPPED-SUDO-RC=0' "$LOG" || fail "sudo refused the shipped password before passwd"
+grep -q 'Login incorrect' "$LOG" || fail "the shipped password was not rejected at the console after passwd"
+grep -q 'CHOSEN-LOGIN-OK' "$LOG" || fail "the chosen password did not log in"
 grep -q 'STORAGE-WRITABLE-AS-RETROGAMER' "$LOG" || fail "retrogamer cannot write the /storage tree"
 grep -q 'ConditionResult=no' "$LOG" || fail "the unit's condition did not hold on the second boot"
 grep -q 'skipped, unmet condition check' "$LOG" || fail "the second boot did not skip firstboot"
+if grep -qF "$NEWPW" "$LOG"; then fail "the chosen password is in the transcript"; fi
 
-echo "first boot: partition $SIZE_BEFORE -> $SIZE_AFTER sectors, /storage seeded, shipped password rejected, second boot skipped the unit"
+echo "first boot: partition $SIZE_BEFORE -> $SIZE_AFTER sectors, /storage seeded, shipped password kept until passwd, second boot skipped the unit"
 echo "transcript: $LOG"

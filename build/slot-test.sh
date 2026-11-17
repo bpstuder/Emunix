@@ -32,7 +32,7 @@ echo "image $IMG, accel $ACCEL" | tee -a "$LOG"
 cp --sparse=always "$IMG" "$DISK"
 cp "$OVMF/OVMF_VARS.4m.fd" "$WORK/OVMF_VARS.fd"
 
-# firstboot (card 05) replaces the shipped password and grows the disk; this test needs neither,
+# firstboot (card 05) grows the disk and seeds /storage; this test needs neither,
 # so the copy is marked initialized and the shipped password keeps working. rootfs_b gets a copy
 # of rootfs_a, which is the state after an update has written the inactive slot.
 MNT=$WORK/mnt

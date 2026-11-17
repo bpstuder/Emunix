@@ -1,11 +1,11 @@
 #!/bin/bash
-# Emunix first boot: grow the last partition into the rest of the device, seed the /storage tree,
-# and retire the shipped retrogamer:retrogamer password. Run once by firstboot.service before the
-# frontend starts; the marker is written last, so an interrupted first boot simply runs again.
+# Emunix first boot: grow the last partition into the rest of the device and seed the /storage
+# tree. Run once by firstboot.service before the frontend starts; the marker is written last, so an
+# interrupted first boot simply runs again.
 #
-# The password change is deliberately not a gate: a console prompt is offered, and a generated
-# password takes over when nobody answers, so a keyboard-less or headless boot still reaches the
-# frontend with the shipped password already dead.
+# The shipped retrogamer:retrogamer password is left alone. /etc survives an image update, so the
+# user changes it with `passwd` when they want to; INSTALL.md carries the warning that it is
+# public until then.
 set -uo pipefail
 
 USER_NAME=retrogamer
@@ -15,10 +15,6 @@ PREFIX=${EMUNIX_FIRSTBOOT_PREFIX:-}
 MARKER=$PREFIX/var/lib/emunix/initialized
 STORAGE=$PREFIX/storage
 SYSTEMS=$PREFIX/etc/emulationstation/es_systems.xml
-# Overridden by tests/test-firstboot.sh, which runs the script against a sandbox root and a stub
-# PATH; the unit runs with the defaults.
-TTY=${EMUNIX_FIRSTBOOT_TTY:-/dev/tty1}
-PASSWORD_TIMEOUT=${EMUNIX_FIRSTBOOT_TIMEOUT:-30}
 
 log() { printf 'emunix-firstboot: %s\n' "$*"; }
 fail() { log "$*"; exit 1; }
@@ -67,32 +63,10 @@ seed_storage() {
   chown -R "$USER_NAME:$USER_NAME" "$STORAGE" || fail "cannot chown $STORAGE"
 }
 
-# 3. /etc/shadow is on the read-only root, so the write needs a temporary remount.
-set_password() {
-  local pw=""
-  printf '\nEmunix first boot: password for %s (Enter generates one).\nPassword: ' "$USER_NAME" >"$TTY" 2>/dev/null
-  read -rs -t "$PASSWORD_TIMEOUT" pw
-  printf '\n' >"$TTY" 2>/dev/null
-  if [ -z "$pw" ]; then
-    pw=$(head -c 128 /dev/urandom | tr -dc 'A-HJ-NP-Za-km-z2-9' | head -c 12)
-    # Shown once on the console and journaled, so it is never lost to a missed screen.
-    log "no answer in ${PASSWORD_TIMEOUT}s: generated password for $USER_NAME: $pw"
-  fi
-  mount -o remount,rw / || fail "cannot remount / read-write to set the password"
-  if ! printf '%s:%s\n' "$USER_NAME" "$pw" | chpasswd; then
-    mount -o remount,ro /
-    fail "chpasswd failed: the shipped password is still in place"
-  fi
-  sync
-  mount -o remount,ro / || fail "cannot remount / read-only again"
-  log "password for $USER_NAME replaced: the shipped one no longer authenticates"
-}
-
 grow_disk
 seed_storage
-set_password
 
-# 4. Last: an interrupted first boot must retry everything above.
+# 3. Last: an interrupted first boot must retry everything above.
 mkdir -p "$(dirname "$MARKER")" || fail "cannot create $(dirname "$MARKER")"
 : >"$MARKER" || fail "cannot write $MARKER"
 log "first boot complete"

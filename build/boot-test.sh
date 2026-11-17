@@ -20,9 +20,9 @@ MNT=$WORK/mnt
 LOOP=
 trap 'umount -R "$MNT" 2>/dev/null || true; losetup -d "${LOOP:-}" 2>/dev/null || true; rm -rf "$WORK"' EXIT
 
-# firstboot.service (card 05) grows the disk and replaces the shipped password on a real first
-# boot. This test is about reaching multi-user and logging in, so the copy is marked initialized
-# first and the shipped password keeps working.
+# firstboot.service (card 05) grows the disk and seeds /storage on a real first boot. This test is
+# about reaching multi-user and logging in, so the copy is marked initialized first and the shipped
+# password keeps working.
 cp --sparse=always "$IMG" "$WORK/disk.img"
 LOOP=$(attach_image "$WORK/disk.img")
 mkdir -p "$MNT"

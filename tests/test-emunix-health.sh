@@ -69,7 +69,7 @@ run -- clear | grep -qx 'boot completed; attempt counter clear' || fail "clear d
 run -- check || fail "check failed after a clear"
 
 # 4. A boot that reached multi-user forgives the boots before it: this is what keeps a device that
-#    was switched off during boot (or right after the first-boot password prompt) from putting a
+#    was switched off during boot (or right after a first boot) from putting a
 #    healthy next boot at risk of a rollback.
 printf '2\n' >"$STATE/boot-attempts"
 printf '1\n' >"$STATE/reached"

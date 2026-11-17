@@ -27,8 +27,8 @@ trap 'umount -R "$WORK/mnt" 2>/dev/null || true; losetup -d "${LOOP:-}" 2>/dev/n
 
 # The ROM tree is firstboot's (card 05) and is empty in this image. Seed it on a copy so the frontend
 # has one system to show; the placeholder is 16 zero bytes, no ROM content, and never touches the
-# image under test. firstboot also replaces the shipped password, and this test logs in with it, so
-# the copy is marked initialized on /var first.
+# image under test. This test logs in with the shipped password, so firstboot — which would grow the
+# disk and seed /storage — is skipped by marking the copy initialized on /var first.
 SPARSE=--sparse=always
 cp "$SPARSE" "$IMG" "$WORK/boot.img"
 LOOP=$(attach_image "$WORK/boot.img")

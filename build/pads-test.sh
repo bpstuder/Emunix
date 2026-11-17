@@ -34,7 +34,7 @@ trap 'umount -R "$MNT" 2>/dev/null || true; losetup -d "${LOOP:-}" 2>/dev/null |
 mkdir -p "$OUT"
 : >"$LOG"
 
-# Skip firstboot (it would replace the shipped password) and leave the guest a
+# Skip firstboot (it grows the disk and seeds /storage) and leave the guest a
 # probe script to run on the serial console.
 cp --sparse=always "$IMG" "$WORK/disk.img"
 LOOP=$(attach_image "$WORK/disk.img")

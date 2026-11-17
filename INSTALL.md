@@ -56,22 +56,21 @@ You need `zstd`, `sha256sum` and (to check the signature) `minisign`.
 
 ## First boot
 
-The first boot does three things before the frontend starts, and it is normal for it to take a
+The first boot does two things before the frontend starts, and it is normal for it to take a
 minute:
 
-- **The password changes.** The image ships `retrogamer`/`retrogamer`. On tty1 you are asked for
-  a new password; press Enter to have one generated. If nobody answers within 30 seconds, a
-  generated password is printed on the console and written to the journal. Either way the shipped
-  password stops working, so a fresh device is safe to put on a network. Read the generated one
-  with `journalctl -u firstboot` if you missed it.
 - The last partition grows into the rest of the card/SSD, and `/storage/roms/<system>`, `bios`,
   `saves` and `states` are created (owned by `retrogamer`).
 - Only then is `/var/lib/emunix/initialized` written. Delete that file to make the next boot run
   the first-boot steps again.
 
-Missed the generated password? Boot with `init=/bin/bash`, `mount -o remount,rw /` and
-`passwd retrogamer`. On a headless device the first-boot log, generated password included, is on
-the serial console (`console=ttyS0`) and in the journal.
+The password is **not** touched then: the image ships `retrogamer`/`retrogamer`, and it keeps
+working until you change it with `passwd`.
+
+> **Security — that password is public.** Every Emunix image ships the same one, so anyone who has
+> read this repository knows it. The image ships no `sshd`, so it guards the console and `sudo`
+> (`sudo` is password-gated for `wheel`) rather than a service reachable over the network — but
+> anyone holding the device can log in until you run `passwd`.
 
 ## If the device does not boot
 
@@ -114,10 +113,10 @@ sets it from the tag.
   journal hint when the session exited non-zero).
 - Games are launched from `/storage/roms/<system>/`; `/etc/emulationstation` holds the read-only
   defaults, copied to `~/ES-DE` on first login so your edits survive image updates.
-- The root filesystem is read-only, but `/etc` is an overlay: hostname changes, Wi-Fi profiles and
-  anything else that writes config at runtime land on `/var/lib/emunix/overlay/etc/<slot>` and
-  survive a reboot. Booting the other root slot starts from that image's `/etc` again, so `/etc`
-  edits do not carry across an update.
+- The root filesystem is read-only, but `/etc` is an overlay whose upper layer lives on `/var` for
+  the whole device: Wi-Fi profiles, the hostname, users and their passwords, the timezone and
+  anything else written at runtime survive an image update, on either slot. A file you never
+  changed is not in that layer, so it still follows the new image.
 - Updates are whole signed images, not packages. `emunix-os-updater` (daily timer, AC power)
   fetches `emunix.json` and `emunix.json.minisig` from `EMUNIX_REPO_URL`, verifies the signature
   against `/etc/emunix/update.pub`, downloads the `.img.zst`, verifies the sha256/size, streams the

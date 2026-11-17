@@ -1,18 +1,14 @@
 [Unit]
-Description=Emunix first boot (grow the disk, seed /storage, retire the shipped password)
+Description=Emunix first boot (grow the disk, seed /storage)
 ConditionPathExists=!/var/lib/emunix/initialized
 After=local-fs.target
-# The console belongs to this unit while the password prompt runs, and the frontend must not scan
-# /storage before it is seeded.
+# The frontend must not scan /storage before it is seeded.
 Before=getty@tty1.service
 
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/emunix-firstboot
-# The prompt reads the console keyboard; the log also goes to the kernel console so a headless
-# flash still shows the generated password on the serial port.
-StandardInput=tty
-TTYPath=/dev/tty1
+# Also on the kernel console: a headless flash shows the progress on the serial port.
 StandardOutput=journal+console
 TimeoutStartSec=5min
 

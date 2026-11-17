@@ -122,6 +122,11 @@ The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a
    replaces the two files on the device ESP (`/boot`) -- temp name, `fsync`, rename, `fsync` --
    then runs `e2fsck -f` and flips the loader with `emunix-slot next <inactive>`.
 
+Only the slot's image is replaced; what the device wrote at runtime is not part of it. `/etc`
+(Wi-Fi profiles, hostname, users and their passwords, timezone) is one overlay for the whole
+device and survives every update, and `/var` and `/home` are separate partitions that are not
+touched at all.
+
 The artifact is a full GPT disk image (~24 GiB raw, ~1.3 GiB compressed), so the updater never
 decompresses it to a file: `/var` (2 GiB) only ever holds the compressed artifact. The GPT is read
 from a 2 MiB probe at the start of the artifact; the manifest's sha256/size pin the artifact, so
