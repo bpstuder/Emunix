@@ -135,7 +135,7 @@ sets it from the tag.
 ## Project status
 
 - `release.yml` builds, verifies, signs and attaches the four files above to a GitHub Release when a
-  `<year>.<month>.<patch>` tag is pushed; the tag is the version. **No image has been published
-  yet** — the Releases page is empty until the first tag is pushed.
+  `<year>.<month>.<patch>` tag is pushed; the tag is the version. The
+  [Releases page](https://github.com/bpstuder/Emunix/releases) is the list of published images.
 - Testing so far runs under QEMU only (`.github/workflows/build.yml`, `evidence/`); no real
   handheld hardware has been tested.
