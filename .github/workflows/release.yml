@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.ref_name }}
+      # gh is preinstalled on the runner but not authenticated: without this, `gh release view`
+      # fails silently behind its `if` (the "refuse an existing release" gate then passes for the
+      # wrong reason) and `gh release create` dies after the 25-minute build.
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -23,13 +27,17 @@ jobs:
           }
 
       # Never overwrite an existing release asset: an existing release fails the job before
-      # anything is uploaded.
+      # anything is uploaded. "Cannot ask" is a failure too -- only a definite "not found" passes.
       - name: Refuse an existing release
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          if out=$(gh release view "$TAG" 2>&1); then
             echo "release '$TAG' already exists; refusing to touch its assets" >&2
             exit 1
           fi
+          case $out in
+            *"release not found"*) exit 0 ;;
+            *) echo "cannot tell whether '$TAG' exists: $out" >&2; exit 1 ;;
+          esac
 
       - name: Install minisign and zstd
         run: |
