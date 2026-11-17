@@ -31,7 +31,11 @@ check "numeric, not lexical"         update "1.9"       "1.10"
 UPDATER=$DIR/build/os-updater.sh
 UT=$(mktemp -d)
 trap 'rm -rf "$UT"' EXIT
-mkdir -p "$UT/bin" "$UT/cache" "$UT/parts"
+mkdir -p "$UT/bin" "$UT/cache" "$UT/parts" "$UT/esp"
+printf 'old kernel\n' >"$UT/esp/vmlinuz-linux"
+printf 'old initrd\n' >"$UT/esp/initramfs-linux.img"
+printf 'new kernel\n' >"$UT/esp-kernel"
+printf 'new initrd\n' >"$UT/esp-initrd"
 command -v minisign >/dev/null 2>&1 || { echo "FAIL: minisign is required" >&2; exit 1; }
 command -v zstd >/dev/null 2>&1 || { echo "FAIL: zstd is required" >&2; exit 1; }
 
@@ -97,7 +101,28 @@ STUB
 cat >"$UT/bin/df" <<'STUB'
 #!/bin/bash
 echo "Avail"
-echo "${STUB_AVAIL:-2000000000}"
+case $* in
+  *"$STUB_ESP_DIR"*) echo "${STUB_ESP_AVAIL:-2000000000}" ;;
+  *) echo "${STUB_AVAIL:-2000000000}" ;;
+esac
+STUB
+cat >"$UT/bin/mcopy" <<'STUB'
+#!/bin/bash
+name="" dest=""
+while [ $# -gt 0 ]; do
+  case $1 in
+    -o) shift ;;
+    -i) shift 2 ;;
+    -*) shift ;;
+    ::*) name=${1#::}; shift ;;
+    *) dest=$1; shift ;;
+  esac
+done
+case $name in
+  vmlinuz-linux) cp "$STUB_ESP_KERNEL" "$dest" ;;
+  initramfs-linux.img) cp "$STUB_ESP_INITRD" "$dest" ;;
+  *) printf 'mcopy stub: unknown %s\n' "$name" >&2; exit 1 ;;
+esac
 STUB
 cat >"$UT/slot" <<'STUB'
 #!/bin/bash
@@ -108,7 +133,7 @@ case ${1:-} in
   *) exit 1 ;;
 esac
 STUB
-chmod +x "$UT/bin/curl" "$UT/bin/dd" "$UT/bin/e2fsck" "$UT/bin/df" "$UT/slot"
+chmod +x "$UT/bin/curl" "$UT/bin/dd" "$UT/bin/e2fsck" "$UT/bin/df" "$UT/bin/mcopy" "$UT/slot"
 
 # The write tests need real block-device nodes for the updater's [ -b ] check.
 CAN_WRITE=0
@@ -134,8 +159,10 @@ run_updater() { # [VAR=value ...] -- <args...>
     EMUNIX_LOCK_FILE="$UT/lock" \
     EMUNIX_UPDATE_LOG="$UT/log" \
     EMUNIX_PARTITION_DIR="$UT/parts" \
+    EMUNIX_ESP_DIR="$UT/esp" \
     STUB_MANIFEST="$manifest" STUB_SIG="$UT/emunix.json.minisig" \
     STUB_IMAGE="$UT/image.img" STUB_LOG="$UT/calls" \
+    STUB_ESP_DIR="$UT/esp" STUB_ESP_KERNEL="$UT/esp-kernel" STUB_ESP_INITRD="$UT/esp-initrd" \
     "${envs[@]}" \
     "$UPDATER" "$@"
 }
@@ -213,6 +240,7 @@ if [ "$CAN_WRITE" -eq 1 ]; then
   sfdisk "$UT/disk.img" >/dev/null 2>&1 <<'EOF'
 label: gpt
 start=2048, size=8192, name="rootfs_a"
+start=10240, size=8192, name="esp"
 EOF
   head -c 4194304 /dev/urandom >"$UT/rootfs.payload"
   dd if="$UT/rootfs.payload" of="$UT/disk.img" bs=1M seek=1 conv=notrunc status=none
@@ -229,7 +257,23 @@ EOF
     fail "the slot was not written from the rootfs_a partition: $(cat "$UT/calls")"
   grep -q "of=$UT/parts/rootfs_b" "$UT/calls" ||
     fail "the rootfs_a partition was not written to the inactive slot: $(cat "$UT/calls")"
+  grep -q "skip=5242880 count=4194304" "$UT/calls" ||
+    fail "the esp partition was not streamed: $(cat "$UT/calls")"
   grep -q 'e2fsck -f -y '"$UT/parts/rootfs_b" "$UT/calls" || fail "the written slot was not checked: $(cat "$UT/calls")"
+  [ "$(cat "$UT/esp/vmlinuz-linux")" = "new kernel" ] || fail "the ESP kernel was not replaced"
+  [ "$(cat "$UT/esp/initramfs-linux.img")" = "new initrd" ] || fail "the ESP initramfs was not replaced"
+  [ -z "$(find "$UT/esp" -name '.*.new' -print -quit)" ] || fail "a temp file was left on the ESP"
+
+  # 10. A full ESP aborts before the loader is flipped and leaves the old kernel in place.
+  printf 'old kernel\n' >"$UT/esp/vmlinuz-linux"
+  printf 'old initrd\n' >"$UT/esp/initramfs-linux.img"
+  : >"$UT/calls"
+  out=$(run_updater STUB_MANIFEST="$UT/zst.json" STUB_SIG="$UT/zst.json.minisig" \
+    STUB_IMAGE="$UT/disk.img.zst" STUB_ESP_AVAIL=1 -- 2>&1) && rc=0 || rc=$?
+  [ "$rc" -ne 0 ] || fail "a full ESP should abort"
+  printf '%s\n' "$out" | grep -q 'not enough free space' || fail "the ESP free-space refusal was not shown: $out"
+  grep -q 'slot next' "$UT/calls" && fail "a full ESP still flipped the loader"
+  [ "$(cat "$UT/esp/vmlinuz-linux")" = "old kernel" ] || fail "a full ESP still replaced the kernel"
 else
   printf 'skip: the write tests need root for block-device nodes\n'
 fi

@@ -57,7 +57,7 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   etc/systemd/system/multi-user.target.wants/firstboot.service usr/bin/growpart \
   usr/local/bin/emunix-slot usr/local/bin/emunix-etc-overlay etc/systemd/system/emunix-etc-overlay.service \
   etc/systemd/system/sysinit.target.wants/emunix-etc-overlay.service \
-  usr/bin/minisign etc/emunix/update.pub usr/bin/zstd usr/bin/partx usr/bin/truncate \
+  usr/bin/minisign usr/bin/zstd usr/bin/partx usr/bin/truncate usr/bin/mcopy \
   usr/share/pacman/keyrings/emunix.gpg usr/share/pacman/keyrings/emunix-trusted \
   usr/local/bin/emunix-os-updater usr/local/lib/emunix/lib-update.sh \
   etc/systemd/system/emunix-os-updater.service etc/systemd/system/emunix-os-updater.timer \

@@ -26,6 +26,7 @@ sudo
 polkit
 minisign                     # verifies the signed update manifest (update/README.md)
 zstd                         # the release artifact is .img.zst; os-updater decompresses it
+mtools                       # mcopy reads the kernel/initramfs out of the artifact ESP (FAT32)
 
 # Emulation: one core per system, official repos only. The frontend (emulationstation-de) and
 # its freeimage dependency live in packages/ and are installed from [emunix]; pcsx2 and

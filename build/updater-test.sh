@@ -17,7 +17,7 @@ OUT=${2:-$(dirname "$0")/../evidence}
 [ "$(id -u)" -eq 0 ] || { echo "updater-test.sh must run as root (loop mount)" >&2; exit 1; }
 OVMF=/usr/share/edk2/x64
 [ -f "$OVMF/OVMF_CODE.4m.fd" ] || { echo "edk2-ovmf is not installed ($OVMF)" >&2; exit 1; }
-for c in expect socat python3 openssl minisign zstd sha256sum curl; do
+for c in expect socat python3 openssl minisign zstd sha256sum curl arch-chroot partx mkfs.vfat fstrim; do
   command -v "$c" >/dev/null || { echo "$c is required" >&2; exit 1; }
 done
 
@@ -51,22 +51,54 @@ trap cleanup EXIT
 : >"$LOG"
 echo "image $IMG, accel $ACCEL" | tee -a "$LOG"
 
-# --- the v2 release artifact: the real disk image, version bumped ------------------------
+# --- the v2 release artifact: the real disk image, version and kernel changed --------------
 # Work on a copy: the built image is never mounted, so a test run cannot modify it. This is the
 # full GPT disk image a release publishes, so the updater must stream rootfs_a out of it.
+#
+# The kernel changes too: the previous pkgrel of the same kernel from the Arch archive supplies
+# vmlinuz and the modules, and the image's own mkinitcpio builds the matching initramfs. The
+# artifact's ESP and rootfs then carry a kernel the installed one does not have.
+KOLD_VER=7.3.4-arch1-1
+KOLD_PKG=linux-7.3.4.arch1-1-x86_64.pkg.tar.zst
+curl -fsSL -o "$WORK/$KOLD_PKG" "https://archive.archlinux.org/packages/l/linux/$KOLD_PKG"
+mkdir -p "$WORK/kold"
+tar -xf "$WORK/$KOLD_PKG" -C "$WORK/kold"
 cp --sparse=always "$IMG" "$WORK/v2.img"
 LOOP=$(attach_image "$WORK/v2.img")
-mkdir -p "$WORK/a"
+mkdir -p "$WORK/a" "$WORK/e" "$WORK/esp-old" "$WORK/esp-new"
 mount "${LOOP}p2" "$WORK/a"
 V1=$(cat "$WORK/a/etc/emunix-version")
+V1KERN=$(find "$WORK/a/usr/lib/modules" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | head -n1)
 # The version is <year>.<month>.<patch>; bump the patch, not the day.
 V2=$(awk -F. '{printf "%s.%s.%d", $1, $2, $3 + 1}' <<<"$V1")
+cp -a "$WORK/kold/usr/lib/modules/$KOLD_VER" "$WORK/a/usr/lib/modules/"
+# The new rootfs carries the new kernel's modules, not the old one's: a real release has one.
+rm -rf "$WORK/a/usr/lib/modules/$V1KERN"
+arch-chroot "$WORK/a" depmod "$KOLD_VER"
+arch-chroot "$WORK/a" mkinitcpio -k "$KOLD_VER" -g /boot/initramfs-linux.img
 printf '%s\n' "$V2" >"$WORK/a/etc/emunix-version"
+# Rebuild the ESP from scratch: the bootloader and loader entries are copied, the kernel and
+# initramfs are the new ones. Punching the partition first keeps the old files' blocks out of the
+# artifact, so the test image stays the size a real release is.
+mount -o ro "${LOOP}p1" "$WORK/esp-old"
+cp -a "$WORK/esp-old/EFI" "$WORK/esp-old/loader" "$WORK/esp-new/"
+umount "$WORK/esp-old"
+read -r esp_start esp_sectors _ < <(partx --show --output START,SECTORS,NAME --noheadings "$WORK/v2.img" |
+  awk '$3=="esp" {print $1, $2}')
+fallocate -p -o $((esp_start * 512)) -l $((esp_sectors * 512)) "$WORK/v2.img" 2>/dev/null || true
+mkfs.vfat -F32 -n ESP "${LOOP}p1" >/dev/null
+mount "${LOOP}p1" "$WORK/e"
+cp -a "$WORK/esp-new/." "$WORK/e/"
+cp "$WORK/kold/usr/lib/modules/$KOLD_VER/vmlinuz" "$WORK/e/vmlinuz-linux"
+cp "$WORK/a/boot/initramfs-linux.img" "$WORK/e/initramfs-linux.img"
+rm -f "$WORK/a/boot/initramfs-linux.img"
+fstrim "$WORK/a" >/dev/null 2>&1 || true
+umount "$WORK/e"
 umount "$WORK/a"
 losetup -d "$LOOP"
 zstd -q -T0 -19 -f "$WORK/v2.img" -o "$WORK/v2.img.zst"
 rm -f "$WORK/v2.img"
-echo "v1 $V1 -> v2 $V2, artifact $(stat -c %s "$WORK/v2.img.zst") bytes compressed" | tee -a "$LOG"
+echo "v1 $V1 (kernel $V1KERN) -> v2 $V2 (kernel $KOLD_VER), artifact $(stat -c %s "$WORK/v2.img.zst") bytes compressed" | tee -a "$LOG"
 
 # The corrupt copy: one byte flipped, so the sha256 no longer matches the manifest.
 cp --sparse=always "$WORK/v2.img.zst" "$WORK/v2-corrupt.img.zst"
@@ -207,6 +239,7 @@ echo '@PUB@' | base64 -d >/tmp/test.pub
 sudo env CURL_CA_BUNDLE=/tmp/ca.pem EMUNIX_UPDATE_PUBKEY=/tmp/test.pub EMUNIX_REPO_URL=https://10.0.2.2:8443 /usr/local/bin/emunix-os-updater
 echo "UPDATER-RC=$?"
 echo "VERSION-B1: $(cat /etc/emunix-version)"
+echo "KERNEL-B1: $(uname -r)"
 echo "SLOT-B1: $(sudo emunix-slot status | tr '\n' ' ')"
 echo "UPDATE-BOOT1-E""ND"
 EOF
@@ -215,6 +248,7 @@ sed -e "s|@CA@|$CA_B64|" -e "s|@PUB@|$PUB_B64|" "$WORK/t1" | one_line >"$WORK/cm
 cat >"$WORK/t2" <<'EOF'
 echo "ROOT-B2: $(grep -o 'root=[^ ]*' /proc/cmdline)"
 echo "VERSION-B2: $(cat /etc/emunix-version)"
+echo "KERNEL-B2: $(uname -r)"
 echo "ACTIVE-B2: $(sudo emunix-slot status | sed -n 's/^active: //p')"
 echo "DEFAULT-B2: $(sudo emunix-slot status | sed -n 's/^default: //p')"
 echo "UPDATE-BOOT2-E""ND"
@@ -231,6 +265,7 @@ echo '@PUB@' | base64 -d >/tmp/test.pub
 sudo env CURL_CA_BUNDLE=/tmp/ca.pem EMUNIX_UPDATE_PUBKEY=/tmp/test.pub EMUNIX_REPO_URL=https://10.0.2.2:8443 /usr/local/bin/emunix-os-updater
 echo "UPDATER-RC=$?"
 echo "VERSION-B3: $(cat /etc/emunix-version)"
+echo "KERNEL-B3: $(uname -r)"
 echo "SLOT-B3: $(sudo emunix-slot status | tr '\n' ' ')"
 echo "UPDATE-BOOT3-E""ND"
 EOF
@@ -253,19 +288,22 @@ grep -aq 'UPDATER-RC=0' "$LOG" || fail "boot 1: the updater did not succeed"
 grep -aq 'accepted: version' "$LOG" || fail "boot 1: the manifest was not accepted"
 grep -aq "staged $V2 on slot b" "$LOG" || fail "boot 1: the update was not staged on slot b"
 grep -aq "VERSION-B1: $V1" "$LOG" || fail "boot 1: the running version changed before the reboot"
+grep -aq "KERNEL-B1: $V1KERN" "$LOG" || fail "boot 1: the running kernel is not $V1KERN"
 grep -aq 'SLOT-B1: active: a' "$LOG" || fail "boot 1: the active slot changed"
 grep -aq 'SLOT-B1: active: a default: emunix-b.conf' "$LOG" || fail "boot 1: the loader was not flipped"
 
 grep -aq 'ROOT-B2: root=PARTLABEL=rootfs_b' "$LOG" || fail "boot 2: the reboot did not land on slot b"
 grep -aq "VERSION-B2: $V2" "$LOG" || fail "boot 2: the version is not $V2"
+grep -aq "KERNEL-B2: $KOLD_VER" "$LOG" || fail "boot 2: the new kernel $KOLD_VER did not boot"
 grep -aq 'ACTIVE-B2: b' "$LOG" || fail "boot 2: the active slot is not b"
 grep -aq 'DEFAULT-B2: emunix-b.conf' "$LOG" || fail "boot 2: the default is not slot b"
 
 grep -aq 'UPDATER-RC=1' "$LOG" || fail "boot 3: the corrupt image did not abort"
 grep -aq 'does not match the manifest' "$LOG" || fail "boot 3: the image refusal was not shown"
 grep -aq "VERSION-B3: $V1" "$LOG" || fail "boot 3: the active slot version changed"
+grep -aq "KERNEL-B3: $V1KERN" "$LOG" || fail "boot 3: the corrupt update changed the kernel"
 grep -aq 'SLOT-B3: active: a' "$LOG" || fail "boot 3: the active slot changed"
 grep -aq 'SLOT-B3: active: a default: emunix-a.conf' "$LOG" || fail "boot 3: the loader default changed"
 
-echo "emunix-os-updater: v1 -> v2 staged and booted, a corrupt image aborts with slot a untouched"
+echo "emunix-os-updater: v1 -> v2 staged and booted (kernel $V1KERN -> $KOLD_VER), a corrupt image aborts with slot a untouched"
 echo "transcript: $LOG"

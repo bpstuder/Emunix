@@ -117,15 +117,28 @@ The image ships `emunix-os-updater` (installed from `build/os-updater.sh`) and a
 3. downloads the `.img.zst` release artifact to `/var/cache/emunix/` with resume, checks free space
    first, and verifies its sha256 and size;
 4. streams the artifact's `rootfs_a` partition (located by reading its GPT) straight into
-   `/dev/disk/by-partlabel/rootfs_<inactive>`, runs `e2fsck -f`, and flips the loader with
-   `emunix-slot next <inactive>`.
+   `/dev/disk/by-partlabel/rootfs_<inactive>`;
+5. reads `vmlinuz-linux` and `initramfs-linux.img` out of the artifact's `esp` partition and
+   replaces the two files on the device ESP (`/boot`) -- temp name, `fsync`, rename, `fsync` --
+   then runs `e2fsck -f` and flips the loader with `emunix-slot next <inactive>`.
 
 The artifact is a full GPT disk image (~24 GiB raw, ~1.3 GiB compressed), so the updater never
 decompresses it to a file: `/var` (2 GiB) only ever holds the compressed artifact. The GPT is read
 from a 2 MiB probe at the start of the artifact; the manifest's sha256/size pin the artifact, so
-the partition boundaries are authenticated by the same signature. The ESP and the kernel are
-shared between slots and are not rewritten by an update, so a release that changes the kernel does
-not reach a device until the ESP is updated too.
+the partition boundaries are authenticated by the same signature. The ESP partition is streamed to
+a sparse file (`mcopy` reads the two files out of it), so only the files' clusters cost space.
+
+The ESP is shared by both slots, so the kernel and initramfs must follow the rootfs: a rootfs-only
+update would leave the device booting the old kernel while the new rootfs carries
+`/usr/lib/modules/<new>`. Only those two files are written; `EFI/` and `loader/` are never touched,
+so the bootloader and the A/B entries stay as they are. A power cut in the rename window can still
+leave a mismatched kernel/initramfs pair, which no slot can recover -- a failed run before the
+renames leaves the old pair in place, and the loader is only flipped after the ESP write succeeds.
+A bare (non-GPT) artifact has no ESP to update; the updater says so and leaves the kernel alone.
+
+Because the updater script ships inside the rootfs, a device only gains the ESP-update behaviour
+with the update that carries it: the update *after* the first release built with it rewrites the
+ESP, so the first kernel-changing release reaches a device one update later.
 
 A failed run leaves the active slot untouched, so the device still boots. `--dry-run` prints the
 plan (version, url, target partition, bytes) and changes nothing.

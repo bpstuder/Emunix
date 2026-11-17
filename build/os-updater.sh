@@ -6,9 +6,14 @@
 #
 # Safety: the active slot comes from the running root (emunix-slot active) and the run aborts
 # when it cannot be determined; nothing is written to a slot before the whole image is downloaded
-# and its sha256/size match the signed manifest. The release artifact is a GPT disk image, so only
-# its rootfs_a partition is streamed into the inactive slot. A failed run leaves the active slot
-# untouched.
+# and its sha256/size match the signed manifest. The release artifact is a GPT disk image, so its
+# rootfs_a partition is streamed into the inactive slot and the kernel/initramfs are read from its
+# esp partition. A failed run leaves the active slot untouched.
+#
+# The ESP is shared by both slots, so a rootfs-only update would keep booting the old kernel. The
+# two files are replaced per file (temp name, fsync, rename, fsync) and EFI/ and loader/ are never
+# touched. A power cut in the rename window can still leave a mismatched kernel/initramfs pair,
+# which no slot can recover -- the residual risk of updating the ESP.
 set -euo pipefail
 
 # shellcheck disable=SC1090   # the library path is overridable for tests
@@ -23,6 +28,7 @@ VERSION_FILE="${EMUNIX_VERSION_FILE:-/etc/emunix-version}"
 SLOT_BIN="${EMUNIX_SLOT_BIN:-/usr/local/bin/emunix-slot}"
 LOCK_FILE="${EMUNIX_LOCK_FILE:-/run/emunix/os-updater.lock}"
 LOG_FILE="${EMUNIX_UPDATE_LOG:-/var/log/emunix-update.log}"
+ESP_DIR="${EMUNIX_ESP_DIR:-/boot}"
 DRY_RUN=0
 
 die() {
@@ -105,6 +111,7 @@ verify_image "$file" "$sha256" "$size" || die "the downloaded image does not mat
 # that partition into the slot so the 24 GiB raw image never touches /var (2 GiB): the manifest
 # pins the compressed bytes, and zstd reads exactly those bytes. A non-.zst artifact is a bare
 # rootfs image and is written whole.
+esp_img=
 if [[ $name == *.zst ]]; then
   raw_size=$(zstd -lv "$file" | sed -n 's/.*Decompressed Size:.*(\([0-9]\+\) B).*/\1/p')
   [ -n "$raw_size" ] || die "cannot read the decompressed size of $file"
@@ -119,24 +126,69 @@ if [[ $name == *.zst ]]; then
   zstd -dc "$file" | dd of="$prefix" bs=1M count=2 conv=notrunc status=none || probe_rc=$?
   set -o pipefail
   [ "$probe_rc" -eq 0 ] || die "cannot read the partition table from $file"
-  entry=$(partx --show --output START,SECTORS,NAME --noheadings "$prefix" 2>/dev/null |
-    awk '$3=="rootfs_a" {print $1, $2}') || true
+  parts=$(partx --show --output START,SECTORS,NAME --noheadings "$prefix" 2>/dev/null || true)
   rm -f "$prefix"
+  entry=$(awk '$3=="rootfs_a" {print $1, $2}' <<<"$parts")
+  esp_entry=$(awk '$3=="esp" {print $1, $2}' <<<"$parts")
   [ -n "$entry" ] || die "no rootfs_a partition in $file"
+  [ -n "$esp_entry" ] || die "no esp partition in $file"
   read -r start sectors _ <<<"$entry"
+  read -r esp_start esp_sectors _ <<<"$esp_entry"
   set +o pipefail
   write_rc=0
   zstd -dc "$file" | dd bs=1M skip=$((start * 512)) count=$((sectors * 512)) \
     iflag=skip_bytes,count_bytes,fullblock of="$target" conv=fsync status=none || write_rc=$?
   set -o pipefail
   [ "$write_rc" -eq 0 ] || die "writing $target failed"
+  # The ESP is mostly empty; conv=sparse keeps only the files' clusters on /var.
+  esp_img=$CACHE_DIR/.esp.img
+  set +o pipefail
+  esp_rc=0
+  zstd -dc "$file" | dd bs=1M skip=$((esp_start * 512)) count=$((esp_sectors * 512)) \
+    iflag=skip_bytes,count_bytes,fullblock of="$esp_img" conv=sparse status=none || esp_rc=$?
+  set -o pipefail
+  [ "$esp_rc" -eq 0 ] || die "cannot read the esp partition from $file"
   rm -f "$file"
 else
   dd if="$file" of="$target" bs=4M conv=fsync status=none || die "writing $target failed"
   rm -f "$file"
+  printf 'note: %s is not a GPT disk image; the ESP and kernel were not updated\n' "$name"
 fi
+
 # e2fsck -f on hash-verified bytes: -y so a non-interactive service never hangs on a prompt.
 e2fsck -f -y "$target" || die "$target does not validate after the write; the boot entry was not changed"
+
+# The kernel and initramfs live on the ESP, which both slots share: without this a release that
+# changes the kernel would leave the device booting the old one. Only those two files are
+# replaced, each atomically (temp name, fsync, rename, fsync); EFI/ and loader/ are never touched.
+if [ -n "$esp_img" ]; then
+  command -v mcopy >/dev/null 2>&1 || die "mcopy (mtools) is not installed; cannot update the ESP"
+  mcopy -o -i "$esp_img" ::vmlinuz-linux "$TMP/vmlinuz-linux" ||
+    die "no vmlinuz-linux in the artifact ESP"
+  mcopy -o -i "$esp_img" ::initramfs-linux.img "$TMP/initramfs-linux.img" ||
+    die "no initramfs-linux.img in the artifact ESP"
+  rm -f "$esp_img"
+  [ -d "$ESP_DIR" ] || die "$ESP_DIR is not mounted"
+  # The temp copies coexist with the files they replace, so both must fit plus headroom.
+  need=$(( $(stat -c %s "$TMP/vmlinuz-linux") + $(stat -c %s "$TMP/initramfs-linux.img") ))
+  need=$((need + need / 10))
+  avail=$(df -B1 --output=avail "$ESP_DIR" | tail -n1)
+  [ "$avail" -ge "$need" ] || die "not enough free space on $ESP_DIR: $avail bytes available, need $need"
+  # The old kernel is kept so a failed initramfs rename can put the pair back together.
+  cp -f "$ESP_DIR/vmlinuz-linux" "$TMP/vmlinuz-linux.old" || die "cannot back up vmlinuz-linux"
+  for f in vmlinuz-linux initramfs-linux.img; do
+    install -m 0644 "$TMP/$f" "$ESP_DIR/.$f.new" || die "cannot stage $f on $ESP_DIR"
+    sync -f "$ESP_DIR/.$f.new"
+  done
+  mv -f "$ESP_DIR/.vmlinuz-linux.new" "$ESP_DIR/vmlinuz-linux" || die "cannot replace vmlinuz-linux"
+  sync -f "$ESP_DIR"
+  if ! mv -f "$ESP_DIR/.initramfs-linux.img.new" "$ESP_DIR/initramfs-linux.img"; then
+    mv -f "$TMP/vmlinuz-linux.old" "$ESP_DIR/vmlinuz-linux"
+    sync -f "$ESP_DIR"
+    die "cannot replace initramfs-linux.img; the old kernel was restored"
+  fi
+  sync -f "$ESP_DIR"
+fi
 "$SLOT_BIN" next "$inactive" || die "could not point the loader at slot $inactive"
 
 msg="Emunix $version is staged on slot $inactive. Reboot to apply it."

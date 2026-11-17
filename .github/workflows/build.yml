@@ -75,7 +75,7 @@ jobs:
       - name: Updater test (signed v1 -> v2, then a corrupt image aborts)
         run: |
           docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
-            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs openssl python minisign >/dev/null &&
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs dosfstools openssl python minisign arch-install-scripts >/dev/null &&
                      bash build/updater-test.sh out/emunix-*-x86_64.img evidence"
       - name: Health test (two failed boots roll back, a normal boot does not)
         run: |
