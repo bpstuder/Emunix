@@ -201,8 +201,13 @@ pacman-key --lsign-key "$EMUNIX_FPR" >/dev/null
 rm -rf /root/emunix-keyring
 grep -q '^\[emunix\]' /etc/pacman.conf ||
   printf '\n[emunix]\nServer = %s\nSigLevel = Required DatabaseRequired\n' "$REPO_URL" >>/etc/pacman.conf
-pacman -Sy --noconfirm >/dev/null
-pacman -S --noconfirm emunix-keyring ryzenadj freeimage emulationstation-de >/dev/null
+# A single stalled download from the [emunix] host failed the whole 25-minute release build once
+# (release run 44168273644: "Operation too slow" on emulationstation-de). Retry each of these two
+# transactions once, so a flaky CDN costs 10 seconds instead of the build. pacman's own download
+# timeout stays on: a dead mirror still fails the build rather than hanging for hours.
+retry() { "$@" || { echo "retry: $* failed, retrying once" >&2; sleep 10; "$@"; }; }
+retry pacman -Sy --noconfirm >/dev/null
+retry pacman -S --noconfirm emunix-keyring ryzenadj freeimage emulationstation-de >/dev/null
 pacman-key --list-keys "$EMUNIX_FPR" >/dev/null ||
   { echo "pacman-key does not list the emunix key" >&2; exit 1; }
 # Prove the install came from [emunix], not from a leftover AUR build or the host: pacman
