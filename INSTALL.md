@@ -5,9 +5,9 @@ Emunix is an immutable Arch-based system for x86_64 handhelds: a read-only root 
 
 ## Installing a release image
 
-Release images are attached to the [GitHub Releases](https://github.com/bpstuder/Emunix/releases)
-page. A release is made by pushing a tag named `<year>.<month>.<patch>` (for example
-`2026.11.1`); the tag is the version.
+The release pipeline attaches each image to the
+[GitHub Releases](https://github.com/bpstuder/Emunix/releases) page when a tag named
+`<year>.<month>.<patch>` (for example `2026.11.1`) is pushed; the tag is the version.
 
 Each release carries four files:
 
@@ -121,9 +121,13 @@ sets it from the tag.
 - Updates are whole signed images, not packages. `emunix-os-updater` (daily timer, AC power)
   fetches `emunix.json` and `emunix.json.minisig` from `EMUNIX_REPO_URL`, verifies the signature
   against `/etc/emunix/update.pub`, downloads the `.img.zst`, verifies the sha256/size, streams the
-  image's `rootfs_a` partition into the inactive slot and flips the loader. The default
-  `EMUNIX_REPO_URL` is GitHub's latest-release asset URL, so a device finds new releases with no
-  configuration; override it for a mirror. See `update/README.md`.
+  image's `rootfs_a` partition into the inactive slot, replaces `vmlinuz-linux` and
+  `initramfs-linux.img` on the ESP from the image's `esp` partition and flips the loader. The
+  ESP is shared by both slots, so the kernel follows an update: after one, booting the other slot
+  gives you the *new* kernel with the old rootfs, not the kernel that slot shipped with. Nothing
+  else on the ESP is touched. The default `EMUNIX_REPO_URL` is GitHub's latest-release asset URL,
+  so a device finds new releases with no configuration; override it for a mirror. See
+  `update/README.md`.
 - The `[emunix]` pacman repository (`https://bpstuder.github.io/Emunix/`) carries packages the
   official repositories do not, and is used while building the image. The read-only root cannot
   install packages at runtime, so a running device gets them from a new image.
@@ -131,6 +135,8 @@ sets it from the tag.
 
 ## Project status
 
-- Release images are published on GitHub Releases; the tag is the version.
+- `release.yml` builds, verifies, signs and attaches the four files above to a GitHub Release when a
+  `<year>.<month>.<patch>` tag is pushed; the tag is the version. **No image has been published
+  yet** — the Releases page is empty until the first tag is pushed.
 - Testing so far runs under QEMU only (`.github/workflows/build.yml`, `evidence/`); no real
   handheld hardware has been tested.

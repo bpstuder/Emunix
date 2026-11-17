@@ -19,6 +19,8 @@ booting straight into EmulationStation-DE. Rolling Arch base, A/B rootfs slots, 
 - `configs/rootfs/` — files copied into the image root (ES-DE session, its units, the ES-DE seed)
 - `configs/` — partition layout
 - `evidence/` — boot transcripts and screenshots from the image tests
+- `tests/` — shell tests for the scripts in `build/` and `configs/rootfs/` (plain
+  `bash tests/test-*.sh`, no framework); CI runs them before the image build
 - `update/` — the signed update manifest format, signing and signing-key custody
 - `.github/workflows/` — CI build pipeline, and the tag-driven release pipeline (`release.yml`)
 
@@ -108,7 +110,8 @@ minutes, raise it in a card rather than editing the script by hand.
 ## Quick start (dev)
 
 Requires an Arch host (or container) with `gptfdisk`, `dosfstools`, `btrfs-progs`, `e2fsprogs`
-and `arch-install-scripts`.
+and `arch-install-scripts`. On a non-Arch host, run the commands below inside an `archlinux`
+container — that is how CI and this workstation do it.
 
 ```sh
 sudo DEVICE=rog-ally ./build/build-image.sh       # out/emunix-<version>-x86_64.img + .sha256
@@ -116,10 +119,17 @@ sudo ./build/verify-image.sh out/emunix-*-x86_64.img
 sudo ./build/boot-test.sh out/emunix-*-x86_64.img  # QEMU + OVMF, login on ttyS0
 sudo ./build/session-test.sh out/emunix-*-x86_64.img  # QEMU + virtio-vga: ES-DE session, screenshots
 sudo ./build/firstboot-test.sh out/emunix-*-x86_64.img  # two boots on a bigger disk: growth, /storage, password
+sudo ./build/etc-overlay-test.sh out/emunix-*-x86_64.img  # writable /etc, survives reboot
 sudo ./build/slot-test.sh out/emunix-*-x86_64.img  # four boots: next/once and the kernel cmdline follow the slot
+sudo ./build/updater-test.sh out/emunix-*-x86_64.img  # signed v1->v2, corrupt aborts
+sudo ./build/health-test.sh out/emunix-*-x86_64.img  # two failed boots roll back
+# build/pads-test.sh is manual only: it needs a joystick evdev node on the host
+# (a real pad, or a uinput one as tests/test-emunix-pads.sh makes)
+#   sudo ./build/pads-test.sh out/emunix-*-x86_64.img /dev/input/event12
 ```
 
-Output lands in `out/` (a 24 GiB GPT disk image, sparse on disk; override with `TOTAL_SIZE`).
+The image tests need a privileged container (loop mounts, QEMU). Output lands in `out/` (a 24 GiB
+GPT disk image, sparse on disk; override with `TOTAL_SIZE`).
 
 ## The `[emunix]` repository
 
