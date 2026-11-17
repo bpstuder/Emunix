@@ -100,7 +100,9 @@ package power limits are set; no thermal limit (Tctl, skin temperature) is touch
 Switch from the **Power Profiles** entry in ES-DE (three script entries seeded into
 `/storage/roms/power`), or run `sudo emunix-tdp quiet|balanced|performance`. The choice is
 remembered in `/var/lib/emunix/tdp-profile` on the persistent `/var` partition and reapplied
-at boot; with nothing stored, the boot default is `balanced` on AC and `quiet` on battery.
+at boot; with nothing stored, the boot default is `balanced` on AC and `quiet` on battery. The
+boot unit has `ConditionPathExists=/sys/module/asus_wmi`, so it is skipped (not failed) on hardware
+without the ASUS WMI driver, such as QEMU.
 The ES-DE entries escalate through a sudoers rule that allows exactly those three commands
 and nothing else.
 

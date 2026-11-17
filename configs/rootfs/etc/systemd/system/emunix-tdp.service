@@ -1,6 +1,10 @@
 [Unit]
 Description=Apply the Emunix TDP profile (quiet/balanced/performance)
+# Skipped, not failed, off ASUS hardware: with no asus_wmi module loaded there is no ASUS APU for
+# ryzenadj/asusctl to clamp, so systemd never starts the unit there. Where the module is loaded the
+# script still fails loudly if the clamp does not apply.
 After=dbus.service
+ConditionPathExists=/sys/module/asus_wmi
 
 [Service]
 Type=oneshot

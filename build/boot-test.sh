@@ -66,7 +66,7 @@ expect {
   timeout { puts stderr "no shell prompt after login"; exit 1 }
 }
 # One marked block: these lines are the acceptance evidence.
-send "id -un; cat /etc/emunix-version; systemctl is-system-running; systemctl get-default; findmnt -no OPTIONS /; for m in /boot /var /home /storage; do findmnt -no TARGET,FSTYPE \$m; done; systemctl --failed --no-legend; echo EMUNIX-EVIDENCE-END\r"
+send "id -un; cat /etc/emunix-version; systemctl is-system-running; systemctl get-default; findmnt -no OPTIONS /; for m in /boot /var /home /storage; do findmnt -no TARGET,FSTYPE \$m; done; systemctl --failed --no-legend; systemctl status emunix-tdp.service --no-pager; echo EMUNIX-EVIDENCE-END\r"
 expect {
   -re {EMUNIX-EVIDENCE-END} {}
   -re {login: } { puts stderr "retrogamer could not log in"; exit 1 }

@@ -52,6 +52,11 @@ grep -qx 'ExecStart=/usr/local/bin/emunix-tdp' "$UNIT" || fail "the boot unit do
 grep -qx 'WantedBy=multi-user.target' "$UNIT" || fail "the boot unit is not enabled for multi-user"
 grep -qx 'After=dbus.service' "$UNIT" ||
   fail "the boot unit does not order after dbus (asusd is D-Bus activated)"
+# Off ASUS hardware (QEMU, a future desktop) there is no asus_wmi module and no APU to clamp: the
+# unit must be skipped by a [Unit] condition, not started only to fail.
+awk '/^\[Unit\]/{u=1} /^\[Service\]/{u=0} u && /^ConditionPathExists=\/sys\/module\/asus_wmi$/{found=1}
+  END{exit !found}' "$UNIT" ||
+  fail "the boot unit is not skipped off ASUS hardware (no ConditionPathExists in [Unit])"
 
 # Exactly the three switch commands are granted, no wildcards.
 [ "$(grep -c 'NOPASSWD' "$SUDOERS")" -eq 3 ] || fail "the ES-DE grant must allow exactly three commands"
