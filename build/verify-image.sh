@@ -116,6 +116,19 @@ ANCHOR=$SCRIPT_DIR/../configs/rootfs/etc/emunix/update.pub
 awk 'NR==2' "$MNT/etc/emunix/update.pub" | base64 -d | od -An -tx1 | grep -q '^ *45 64' ||
   fail "/etc/emunix/update.pub is not a minisign Ed25519 public key"
 
+# pacman.conf ships from the template in build-image.sh, not from the build host: anything the
+# host had configured (a private repository, a host-only option) must not be published inside the
+# release image. Allowed content: the template's options and repos, plus [emunix].
+for repo in core extra; do
+  grep -qx "\[$repo\]" "$MNT/etc/pacman.conf" || fail "pacman.conf has no [$repo] stanza"
+done
+unexpected=$(awk '
+  /^\[/ { section = $0; if (section !~ /^\[(options|core|extra|emunix)\]$/) print section; next }
+  section == "[options]" && $0 !~ /^[[:space:]]*(#|$)/ &&
+    $1 !~ /^(HoldPkg|Architecture|CacheDir|SigLevel|LocalFileSigLevel)$/ { print "[options] " $1 }
+' "$MNT/etc/pacman.conf")
+[ -z "$unexpected" ] || fail "pacman.conf carries what the image template does not: $unexpected"
+
 # [emunix] repo: the image trusts BP's committed public half and configures the repository
 # with signature checking required, so an unsigned or foreign-signed repo cannot install.
 grep -q '^\[emunix\]' "$MNT/etc/pacman.conf" || fail "pacman.conf has no [emunix] stanza"

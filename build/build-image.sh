@@ -93,9 +93,26 @@ install -m 0644 "$REPO"/configs/udev/*.rules "$MNT/etc/udev/rules.d/"
 install -D -m 0755 "$REPO/build/os-updater.sh" "$MNT/usr/local/bin/emunix-os-updater"
 install -D -m 0644 "$REPO/build/lib-update.sh" "$MNT/usr/local/lib/emunix/lib-update.sh"
 
-# pacstrap leaves /etc/pacman.conf out on purpose (the host's repos must not leak in silently), but
-# the image needs one: without it pacman, and the AUR build below, cannot run at all.
-cp /etc/pacman.conf "$MNT/etc/pacman.conf"
+# The image's own pacman.conf is written from the template below, never copied from the build
+# host: whatever a host has configured (CI container, a developer's box) would otherwise ship
+# inside every published release image, and a private host repository can carry a credential in
+# its Server URL. pacstrap above still uses the host configuration; only this file differs.
+cat >"$MNT/etc/pacman.conf" <<'EOF'
+# Written by build/build-image.sh, not taken from the build host. The official repositories the
+# image installs from; [emunix] is appended during the build.
+[options]
+HoldPkg     = pacman glibc
+Architecture = auto
+CacheDir    = /var/cache/pacman/pkg/
+SigLevel    = Required DatabaseOptional
+LocalFileSigLevel = Optional
+
+[core]
+Include = /etc/pacman.d/mirrorlist
+
+[extra]
+Include = /etc/pacman.d/mirrorlist
+EOF
 
 # [emunix] repo: the image build installs the keyring, ryzenadj, freeimage and
 # emulationstation-de from it with signature checking on. The public half is committed; the

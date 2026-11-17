@@ -1,0 +1,106 @@
+# build-image: the host's pacman.conf ships inside the public image — evidence
+# Card t_b7457840, 2026-11-17.
+#
+# Build host: a throwaway archlinux:latest container (the CI image) whose /etc/pacman.conf was
+# given a sentinel repository, [leak] (an empty but loadable file:// repo), to stand in for
+# whatever repositories a build host may have configured. Image: emunix-2026.11.30-x86_64.img,
+# built with EMUNIX_REPO_URL=file:///work/out/repo, the local signed [emunix] repository.
+#
+# Sections 1-2 are the exit criterion; 3 runs the same check against the image built before this
+# change, to show it catches the leak that actually shipped.
+==================================================================
+1. The build
+==================================================================
+Created symlink '/etc/systemd/system/default.target' → '/usr/lib/systemd/system/multi-user.target'.
+Built /work/out/emunix-2026.11.30-x86_64.img (24G apparent, 3.0G on disk)
+Version 2026.11.30, snapshot latest, device none
+
+==================================================================
+2. The exit criterion
+==================================================================
+## The build host: /etc/pacman.conf carries a repository the image must not ship
+$ grep -c "^\[leak\]" /etc/pacman.conf
+1
+$ grep -n -A2 "^\[leak\]" /etc/pacman.conf
+108:[leak]
+109-SigLevel = Never
+110-Server = file:///srv/leak
+
+## The gate
+$ bash build/verify-image.sh /work/out/emunix-2026.11.30-x86_64.img
+verified /work/out/emunix-2026.11.30-x86_64.img: 5 labels, systemd-boot + 2 entries, kernel/initramfs, fstab + mounts, retrogamer, machine-id
+
+## Inside rootfs_a: the sentinel is gone
+$ grep -c '^\[leak\]' <rootfs_a>/etc/pacman.conf
+0
+$ grep -o "^\[[^]]*\]" <rootfs_a>/etc/pacman.conf
+[options]
+[core]
+[extra]
+[emunix]
+
+## The file that ships in the image: <rootfs_a>/etc/pacman.conf
+# Written by build/build-image.sh, not taken from the build host. The official repositories the
+# image installs from; [emunix] is appended during the build.
+[options]
+HoldPkg     = pacman glibc
+Architecture = auto
+CacheDir    = /var/cache/pacman/pkg/
+SigLevel    = Required DatabaseOptional
+LocalFileSigLevel = Optional
+
+[core]
+Include = /etc/pacman.d/mirrorlist
+
+[extra]
+Include = /etc/pacman.d/mirrorlist
+
+[emunix]
+Server = file:///var/cache/emunix-repo
+SigLevel = Required DatabaseRequired
+
+## The four [emunix] packages still resolve there, in the image chroot
+$ pacman -S --print-format %r emunix-keyring -> emunix
+$ pacman -S --print-format %r ryzenadj -> emunix
+$ pacman -S --print-format %r freeimage -> emunix
+$ pacman -S --print-format %r emulationstation-de -> emunix
+$ pacman -Sl leak   (the host repository is not configured in the image)
+error: repository "leak" was not found.
+(no such repository: expected)
+
+==================================================================
+3. The new check against the image built before this change
+==================================================================
+$ bash build/verify-image.sh /work/out/emunix-2026.11.20-x86_64.img
+FAIL: pacman.conf carries what the image template does not: [options] NoProgressBar
+[options] VerbosePkgLists
+[options] ParallelDownloads
+[options] DownloadUser
+[options] DisableSandboxFilesystem
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+[options] NoExtract
+exit=1
+
+# What this does not prove
+#
+# - That a *release* is built this way. The Release pipeline runs the same build and verify steps
+#   on a tag; it is proven here only in a local container, and the GitHub Release path itself is
+#   not exercised (publishing is BP's one-way door).
+# - That no other build-host state leaks into the image. This card closes build-host pacman.conf
+#   only. /etc/pacman.d/mirrorlist still comes from the host (pacstrap copies it by design), so a
+#   host's mirror list does ship; it carries no credentials, and replacing it is a separate card.
+# - That CI's own container is clean. It is the same archlinux:latest image as here, whose
+#   /etc/pacman.conf carries the docker options this card now keeps out of the image; the check
+#   in section 3 shows those options are rejected if they arrive.
+# - The [emunix] Server in this image is file:///var/cache/emunix-repo, because the build used
+#   EMUNIX_REPO_URL=file:// for a local repository. A CI/release build writes the Pages URL.
