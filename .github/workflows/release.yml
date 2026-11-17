@@ -60,6 +60,12 @@ jobs:
             bash -c "pacman -Sy --noconfirm --needed gptfdisk e2fsprogs >/dev/null &&
                      bash build/verify-image.sh out/emunix-$TAG-x86_64.img"
 
+      # The build runs as root inside the container, so out/ comes back root-owned on the runner
+      # while every later step (zstd, sign-manifest, gh release create) runs as `runner`:
+      # "zstd: ... Permission denied" is how that fails. Hand the output back to the runner user.
+      - name: Take ownership of the build output
+        run: sudo chown -R "$(id -u):$(id -g)" out
+
       - name: Package the release artifacts
         run: |
           cd out
