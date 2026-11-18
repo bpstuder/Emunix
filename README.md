@@ -118,6 +118,31 @@ minutes, raise it in a card rather than editing the script by hand.
 `asusd` for the kernel's `platform_profile` interface, so the profiles are owned by
 `asusctl`.
 
+## Installing to the internal disk
+
+Booted from the USB stick, `emunix-install` copies that disk onto an internal disk (the SSD) and
+makes it bootable on its own:
+
+```sh
+sudo emunix-install                  # the only other disk is the target; `yes` to confirm
+sudo emunix-install --target /dev/nvme0n1 --yes   # explicit, no prompt
+```
+
+It copies the source up to the end of the image (not the whole stick), moves the backup GPT to the
+end of the target, regenerates the disk and partition GUIDs (`sgdisk -G`), rewrites the target's two
+loader entries to `root=PARTUUID=<its own rootfs_a/b>`, and drops the target's first-boot marker so
+the target's first boot grows `home` to the whole disk. It refuses the disk it is running from, a
+target with any mounted partition, a target smaller than the image, and battery power. Then power
+off, remove the stick, and boot the internal disk. `INSTALL.md` has the user-facing version.
+
+The ES-DE entry ("Install to the Internal Disk") prints the same plan and stops: ES-DE runs it with
+no terminal (the launcher hands it `/dev/null`) and cannot draw a confirmation, so the installer
+refuses before it writes anything. A keypress *is* readable from tty1 while ES-DE runs, so a countdown
+was possible — it is not used, because text written to the VT never reaches the panel in a QEMU guest
+(dark screen with and without the frontend running: `evidence/m4-vt-visible.log`), and a countdown
+whose plan nobody can see would wipe a disk unseen. Whether the VT paints on the Ally is still open
+(t_186b10eb); the console is the install path.
+
 ## Quick start (dev)
 
 Requires an Arch host (or container) with `gptfdisk`, `dosfstools`, `btrfs-progs`, `e2fsprogs`
@@ -134,6 +159,7 @@ sudo ./build/etc-overlay-test.sh out/emunix-*-x86_64.img  # two A/B cycles: /etc
 sudo ./build/slot-test.sh out/emunix-*-x86_64.img  # four boots: next/once and the kernel cmdline follow the slot
 sudo ./build/updater-test.sh out/emunix-*-x86_64.img  # signed v1->v2, corrupt aborts
 sudo ./build/health-test.sh out/emunix-*-x86_64.img  # two failed boots roll back
+sudo ./build/install-test.sh out/emunix-*-x86_64.img  # stick + empty 20 GiB disk: install, then boot the target alone
 # build/pads-test.sh is manual only: it needs a joystick evdev node on the host
 # (a real pad, or a uinput one as tests/test-emunix-pads.sh makes)
 #   sudo ./build/pads-test.sh out/emunix-*-x86_64.img /dev/input/event12

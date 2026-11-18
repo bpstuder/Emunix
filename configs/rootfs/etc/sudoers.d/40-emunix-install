@@ -1,0 +1,4 @@
+# The ES-DE entry runs unprivileged and only prints the install plan. The empty argument list is
+# deliberate: without it sudo would match any arguments, so `sudo -n emunix-install --yes` would
+# install with no confirmation. An install with --target/--yes needs the user's own password.
+retrogamer ALL=(root) NOPASSWD: /usr/local/bin/emunix-install ""

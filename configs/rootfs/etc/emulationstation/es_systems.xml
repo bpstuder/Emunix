@@ -144,6 +144,16 @@
         <platform>psp</platform>
         <theme>psp</theme>
     </system>
+    <!-- Install: the one script in /storage/roms/install (seeded by firstboot). Writing the SSD
+         needs a typed `yes` on the console, which ES-DE cannot draw and cannot show over its own
+         frame, so the entry prints the install plan and stops; INSTALL.md carries the command. -->
+    <system>
+        <name>install</name>
+        <fullname>Install to the Internal Disk</fullname>
+        <path>%ROMPATH%/install</path>
+        <extension>.sh</extension>
+        <command>%RUNINBACKGROUND% bash %ROM%</command>
+    </system>
     <!-- Power Profiles: three script entries, one per TDP curve (configs/rootfs/usr/share/
          emunix/power-profiles, seeded into /storage/roms/power by firstboot). -->
     <system>

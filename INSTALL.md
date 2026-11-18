@@ -78,6 +78,36 @@ working until you change it with `passwd`.
 > (`sudo` is password-gated for `wheel`) rather than a service reachable over the network — but
 > anyone holding the device can log in until you run `passwd`.
 
+## Install to the internal disk
+
+The stick carries a complete disk image, so moving it onto the internal SSD is a copy: boot the
+stick, run one command, power off, remove the stick.
+
+1. Boot the stick (above) and get to a console — the image ships no `sshd`, so the console is the only
+   way in. Quitting the frontend (ES-DE's menu → Quit) leaves you at the login shell on tty1; the
+   password is `retrogamer` until you change it with `passwd`.
+2. Plug in the charger. The installer refuses to write 13.5 GiB on battery, the same rule the
+   updater's unit carries.
+3. Check which disk is the internal one (`lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL`); on the Ally it
+   is `/dev/nvme0n1`, never a partition of it.
+4. ```sh
+   sudo emunix-install --target /dev/nvme0n1
+   ```
+   It prints the plan — source, target, bytes, and that every partition on the target is replaced —
+   and waits for you to type `yes`. Drop `--target` to use the only other disk it finds; it refuses
+   when there is more than one, when the target is the stick it is running from, when a partition of
+   the target is mounted, and when the target is smaller than the image. `--yes` skips the prompt,
+   so use it only in a script.
+5. When it says done: `sudo poweroff`, remove the stick, and boot. The internal disk boots slot `a`
+   on its own; its first boot grows `/storage` to the whole SSD, so it takes a minute longer.
+
+The ES-DE entry **Install to the Internal Disk** never writes: ES-DE cannot draw a confirmation and
+cannot show a console behind its own screen, so the entry only prints the plan and exits. The install
+itself is the console command above.
+
+It does not offer a partition choice, does not shrink, and does not touch the stick: one target
+disk, one confirmation. The target is overwritten completely.
+
 ## If the device does not boot
 
 The root filesystem is A/B: two slots (`rootfs_a`, `rootfs_b`), each with a systemd-boot entry.

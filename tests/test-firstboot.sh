@@ -34,12 +34,13 @@ sandbox() { # <growpart status> -> fresh sandbox root, prints its path
   local root
   root=$(mktemp -d "$TMP/root.XXXXXX")
   mkdir -p "$root/etc/emulationstation" "$root/storage" \
-    "$root/usr/share/emunix/power-profiles"
-  printf '<systemList>\n  <system><name>nes</name><path>%%ROMPATH%%/nes</path></system>\n  <system><name>psx</name><path>%%ROMPATH%%/psx</path></system>\n  <system><name>power</name><path>%%ROMPATH%%/power</path></system>\n</systemList>\n' \
+    "$root/usr/share/emunix/power-profiles" "$root/usr/share/emunix/install"
+  printf '<systemList>\n  <system><name>nes</name><path>%%ROMPATH%%/nes</path></system>\n  <system><name>psx</name><path>%%ROMPATH%%/psx</path></system>\n  <system><name>power</name><path>%%ROMPATH%%/power</path></system>\n  <system><name>install</name><path>%%ROMPATH%%/install</path></system>\n</systemList>\n' \
     >"$root/etc/emulationstation/es_systems.xml"
   for s in quiet balanced performance; do
     printf '#!/bin/sh\nexit 0\n' >"$root/usr/share/emunix/power-profiles/$s.sh"
   done
+  printf '#!/bin/sh\nexit 0\n' >"$root/usr/share/emunix/install/install-to-disk.sh"
   printf '#!/bin/sh\necho "growpart $*" >>"%s/calls"\nexit %s\n' "$TMP" "$1" >"$TMP/growpart"
   chmod +x "$TMP/growpart"
   echo "$root"
@@ -61,6 +62,8 @@ done
 for s in quiet balanced performance; do
   [ -f "$ROOT/storage/roms/power/$s.sh" ] || fail "/storage/roms/power/$s.sh was not seeded"
 done
+[ -f "$ROOT/storage/roms/install/install-to-disk.sh" ] ||
+  fail "/storage/roms/install/install-to-disk.sh was not seeded"
 grep -q "chown -R retrogamer:retrogamer $ROOT/storage" "$TMP/calls" || fail "/storage was not handed to retrogamer"
 grep -q "btrfs filesystem resize max $ROOT/storage" "$TMP/calls" || fail "btrfs was never grown"
 grep -qx 'growpart /dev/vda 5' "$TMP/calls" ||

@@ -1,0 +1,162 @@
+#!/bin/bash
+# Emunix: put the disk we are running from (a USB stick) onto an internal disk.
+#
+# The release image is a whole GPT disk, so installing is a copy plus a GUID reset:
+#   1. dd the source disk onto the target, stopping at the end of the source's last partition: a
+#      15 GB stick carries a 13.5 GiB image, and the rest of the stick is not part of it;
+#   2. sgdisk -e moves the backup GPT from inside the copy to the end of the real disk;
+#   3. sgdisk -G gives the target new disk and partition GUIDs. Without it the stick and the SSD
+#      carry identical PARTUUIDs, so nothing can tell the two rootfs_a partitions apart;
+#   4. the target's two loader entries are rewritten to root=PARTUUID=<its own rootfs_a/b>, so the
+#      installed system boots from the SSD even when the stick is still attached. Labels stay as
+#      they are everywhere else: /dev/disk/by-partlabel/* is what emunix-slot, emunix-health and
+#      emunix-os-updater use, and they are unique once the stick is out;
+#   5. the target's firstboot marker is dropped, so the target's first boot grows home into the
+#      whole disk (a stick that has already booted carries that marker and would not grow again).
+#
+#   emunix-install [--target /dev/nvme0n1] [--yes]
+#
+# Run it from the console as root. The plan is printed and `yes` typed before anything is written;
+# a launcher without a terminal (the ES-DE entry) only ever gets as far as the plan.
+set -euo pipefail
+
+die() { printf 'emunix-install: %s\n' "$*" >&2; exit 1; }
+usage() { die "usage: emunix-install [--target /dev/DISK] [--yes]"; }
+
+TARGET=
+ASSUME_YES=0
+while [ $# -gt 0 ]; do
+  case $1 in
+    --target) [ $# -ge 2 ] || usage; TARGET=$2; shift 2 ;;
+    --yes) ASSUME_YES=1; shift ;;
+    *) usage ;;
+  esac
+done
+
+[ "$(id -u)" -eq 0 ] || die "run it as root: sudo emunix-install"
+
+disk_of() { # <device> -> the whole disk it belongs to
+  local type parent
+  type=$(lsblk -no TYPE "$1" 2>/dev/null) || return 1
+  case $type in
+    disk) printf '%s\n' "$1" ;;
+    part) parent=$(lsblk -no pkname "$1") || return 1
+          printf '/dev/%s\n' "$parent" ;;
+    *) return 1 ;;
+  esac
+}
+
+part_of() { # <disk> <partlabel> -> its device node, or nothing
+  # -l: without it the NAME column carries the tree drawing ("├─vdb1") of a parent listing.
+  lsblk -lno PATH,PARTLABEL "$1" | awk -v label="$2" '$2 == label { print $1; exit }'
+}
+
+describe() { # <disk> -> "/dev/x (model, size)"
+  local model
+  model=$(lsblk -dno MODEL "$1" 2>/dev/null)
+  printf '%s (%s, %s)' "$1" "${model:-unknown model}" "$(lsblk -dno SIZE "$1")"
+}
+
+# --- the disk we are running from ------------------------------------------------------------
+root=$(findmnt -no SOURCE /) || die "no / mount"
+root=${root%%\[*}   # a subvolume mount reports "/dev/vda5[/something]"
+src=$(disk_of "$root") || die "cannot work out the disk behind $root"
+src_id=$(lsblk -dno MAJ:MIN "$src")
+
+target=
+if [ -z "$TARGET" ]; then
+  # Exactly one other disk, or nothing: picking between two would be a coin flip on one of them.
+  others=()
+  while read -r name; do
+    [ "/dev/$name" = "$src" ] || others+=("/dev/$name")
+  done < <(lsblk -dno NAME,TYPE | awk '$NF == "disk" { print $1 }')
+  [ ${#others[@]} -eq 1 ] ||
+    die "no single target disk; pass --target (candidates: ${others[*]:-none})"
+  target=${others[0]}
+else
+  target=$(disk_of "$TARGET") || die "$TARGET is not a disk or a partition of one"
+fi
+
+[ "$(lsblk -dno MAJ:MIN "$target")" != "$src_id" ] ||
+  die "$target is the disk we are running from: refusing to overwrite the stick"
+mounted=$(lsblk -no MOUNTPOINT "$target" | sed '/^$/d')
+[ -z "$mounted" ] ||
+  die "$target has a mounted partition ($(printf '%s\n' "$mounted" | tr '\n' ' ')); unmount it first"
+grep -q "^$target" /proc/swaps && die "$target carries active swap; swapoff it first"
+
+# Everything the source's partition table covers has to fit: the end of its last partition is where
+# the copy stops, and the target only has to be at least that big.
+last=$(sfdisk -d "$src" |
+  sed -n 's/.*start= *\([0-9]*\), *size= *\([0-9]*\).*/\1 \2/p' |
+  awk '{ end = $1 + $2; if (end > max) max = end } END { print max + 0 }')
+[ "$last" -gt 0 ] || die "cannot read the partition table of $src"
+bytes=$(( last * 512 ))
+target_bytes=$(blockdev --getsize64 "$target")
+[ "$target_bytes" -ge "$bytes" ] ||
+  die "$target is $target_bytes bytes; the image needs $bytes"
+
+# Same rule as emunix-os-updater.service (ConditionACPower): a write this size that runs out of
+# power can leave a half-installed disk. systemd-ac-power is that check as a command.
+systemd-ac-power || die "on battery power: plug the device in first"
+
+printf 'emunix-install: source  %s, running from %s\n' "$(describe "$src")" "$root"
+printf 'emunix-install: target  %s\n' "$(describe "$target")"
+printf 'emunix-install: write   %s bytes (%s MiB), then new GUIDs and loader entries\n' \
+  "$bytes" "$(( bytes / 1048576 ))"
+printf 'emunix-install: WARNING every partition and file on %s is replaced\n' "$target"
+
+if [ "$ASSUME_YES" -eq 0 ]; then
+  # No terminal means nobody can answer: the ES-DE entry runs in the background and stops here.
+  [ -t 0 ] || die "no console to confirm on: run 'sudo emunix-install' from the console"
+  printf 'emunix-install: type yes to install: '
+  read -r answer || die "aborted"
+  [ "$answer" = yes ] || die "aborted"
+fi
+
+# bs=4M is 8192 sectors, so the copy ends on the first 4 MiB boundary at or after the last sector.
+printf 'emunix-install: copying %s -> %s\n' "$src" "$target"
+dd if="$src" of="$target" bs=4M count=$(( (last + 8191) / 8192 )) conv=fsync status=progress ||
+  die "the copy failed: $target is not usable, run the installer again"
+
+printf 'emunix-install: moving the backup GPT to the end of the disk, and new GUIDs\n'
+sgdisk -e -G "$target" >/dev/null || die "sgdisk failed on $target"
+if ! blockdev --rereadpt "$target"; then
+  udevadm settle || true
+  blockdev --rereadpt "$target" || die "cannot re-read the partition table of $target"
+fi
+udevadm settle || true
+
+MOUNT_POINT=
+trap 'if [ -n "$MOUNT_POINT" ]; then umount "$MOUNT_POINT" 2>/dev/null || true; rmdir "$MOUNT_POINT" 2>/dev/null || true; fi' EXIT
+MOUNT_POINT=$(mktemp -d) || die "cannot create a mount point"
+
+# Both assignments matter: under set -e an unreadable partition table (or a missing device node right
+# after the re-read) would otherwise end the script with no message at all.
+esp=$(part_of "$target" esp) || die "cannot read the partition table of $target"
+[ -n "$esp" ] || die "the copy has no esp partition"
+mount "$esp" "$MOUNT_POINT" || die "cannot mount $esp"
+printf 'emunix-install: pointing the loader entries at the new PARTUUIDs\n'
+for slot in a b; do
+  entry=$MOUNT_POINT/loader/entries/emunix-$slot.conf
+  [ -f "$entry" ] || die "$esp carries no loader/entries/emunix-$slot.conf"
+  part=$(part_of "$target" "rootfs_$slot")
+  [ -n "$part" ] || die "the copy has no rootfs_$slot partition"
+  uuid=$(lsblk -no PARTUUID "$part")
+  [ -n "$uuid" ] || die "cannot read the PARTUUID of $part"
+  sed -i "s|root=PARTLABEL=rootfs_$slot|root=PARTUUID=$uuid|" "$entry"
+  grep -q "root=PARTUUID=$uuid" "$entry" || die "could not rewrite $entry"
+done
+umount "$MOUNT_POINT"
+
+var=$(part_of "$target" var) || die "cannot read the partition table of $target"
+[ -n "$var" ] || die "the copy has no var partition"
+mount "$var" "$MOUNT_POINT" || die "cannot mount $var"
+# firstboot writes this marker last; left in place it would keep the target from growing home to
+# the disk it now lives on.
+rm -f "$MOUNT_POINT/lib/emunix/initialized"
+umount "$MOUNT_POINT"
+sync
+
+printf 'emunix-install: done on %s\n' "$target"
+printf 'emunix-install: power off, remove the USB stick, then boot the internal disk\n'
+printf 'emunix-install: its first boot grows /storage to the whole disk\n'

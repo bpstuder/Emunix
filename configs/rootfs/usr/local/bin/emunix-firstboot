@@ -73,6 +73,13 @@ seed_storage() {
     install -D -m 0755 "$script" "$STORAGE/roms/power/$(basename "$script")" ||
       fail "cannot seed $script"
   done
+  # Same for the install entry: the script prints the plan, and the console does the install.
+  if [ -d "$PREFIX/usr/share/emunix/install" ]; then
+    for script in "$PREFIX/usr/share/emunix/install"/*.sh; do
+      install -D -m 0755 "$script" "$STORAGE/roms/install/$(basename "$script")" ||
+        fail "cannot seed $script"
+    done
+  fi
   # The session runs as retrogamer: without this it cannot save a state or add a ROM.
   chown -R "$USER_NAME:$USER_NAME" "$STORAGE" || fail "cannot chown $STORAGE"
 }

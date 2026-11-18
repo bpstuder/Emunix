@@ -15,6 +15,7 @@ e2fsprogs
 dosfstools
 networkmanager
 cloud-guest-utils          # growpart: firstboot grows the last partition to the device size
+gptfdisk                   # sgdisk: emunix-install resets GUIDs and moves the backup GPT
 pipewire
 pipewire-pulse
 wireplumber

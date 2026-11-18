@@ -1,0 +1,41 @@
+spawn qemu-system-x86_64 -machine q35 -accel kvm -m 3072 -smp 4 -vga none -device bochs-display -display none -drive if=pflash,format=raw,readonly=on,file=/usr/share/edk2/x64/OVMF_CODE.4m.fd -drive if=pflash,format=raw,file=/tmp/tmp.PyHmR8nZsY/OVMF_VARS.fd -drive file=/tmp/tmp.PyHmR8nZsY/disk.img,format=raw,if=virtio -no-reboot -serial stdio
+[2J[001;001H[=3h[2J[001;001H[2J[001;001H[8;042;160t[2J[001;001H[2J[001;001H[8;056;240t[2J[001;001HBdsDxe: loading Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+BdsDxe: starting Boot0002 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x3,0x0)
+ [1m[37m[40m[0m[37m[40m[2J[001;001H[020;063H[1m[37m[40m[0m[37m[40m          Emunix (slot b)           [021;063H[1m[30m[47m[0m[30m[47m          Emunix (slot a)           [022;063H[1m[37m[40m[0m[37m[40m   Reboot Into Firmware Interface   [024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 3s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 2s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[024;001H[1m[37m[40m[0m[37m[40m                                                                          Boot in 1s.                                                                          [023;060H[1m[37m[40m[0m[37m[40m──────────────────────────────────────────[1m[37m[40m[0m[37m[40m[2J[001;001Hkbd_mode: KDSKBMODE: Inappropriate ioctl for device
+%Grootfs_a: clean, 56248/327680 files, 579996/1310720 blocks
+********************** WARNING **********************
+*                                                   *
+*  The root device is not configured to be mounted  *
+*  read-write! It may be fsck'd again later.        *
+*                                                   *
+*****************************************************
+P+q6E616D65\[18t7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J]3008;start=abe4a6fca1ea4e2f9789f5fb5b0b8261;user=root;hostname=emunix;machineid=7e3f4534873947eba81ea48d6c646c9b;bootid=f885297204c04668b6a8b91d7f0afe76;pid=1;pidfdid=1;comm=systemd;type=boot\[   26.198701] emunix-firstboot[449]: Emunix first boot: growing the disk to 13.5G
+[   26.201992] emunix-firstboot[449]:  512M
+[   26.234943] emunix-firstboot[449]:    5G
+[   26.240429] emunix-firstboot[449]:    5G
+[   26.241747] emunix-firstboot[449]:    2G
+[   26.243199] emunix-firstboot[449]: 1023M...
+[   26.345081] emunix-firstboot[465]: NOCHANGE: partition 5 could only be grown by -2015 [fudge=2048]
+[   27.904341] emunix-firstboot[449]: emunix-firstboot: /dev/vda5 already fills the device
+[   27.938245] emunix-firstboot[520]: Resize device id 1 (/dev/vda5) from 1022.98MiB to max
+[   27.940554] emunix-firstboot[449]: Emunix first boot: seeding /storage...
+[   28.018207] emunix-firstboot[449]: emunix-firstboot: first boot complete
+[   28.020351] emunix-firstboot[449]: Emunix first boot: done, starting the frontend
+[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8[!p]104\[0m[?7h[1G[0J7[32766;32766H[6n8]3008;start=a0f2847e7e324256b0872294778bfba0;user=root;hostname=emunix;machineid=7e3f4534873947eba81ea48d6c646c9b;bootid=f885297204c04668b6a8b91d7f0afe76;pid=516;pidfdid=143;comm=(agetty);servicename=serial-getty@ttyS0.service;invocationid=0b62e6cc7d254678acdb122cbbe6336f;type=service\P+q6E616D65\
+Arch Linux 7.3.4-arch1-2 (ttyS0)
+
+emunix login: retrogamer
+Password: 
+]3008;start=5621ccd0b75942599becb27e2f5024fc;user=root;hostname=emunix;machineid=7e3f4534873947eba81ea48d6c646c9b;bootid=f885297204c04668b6a8b91d7f0afe76;pid=516;pidfdid=143;comm=login;targetuser=retrogamer;sessionid=2;type=session\]3008;start=0fb4ad27-9ccf-4f6a-b275-9f4b2e392f61;type=shell;machineid=7e3f4534873947eba81ea48d6c646c9b;user=retrogamer;hostname=emunix;bootid=f8852972-04c0-4668-b6a8-b91d7f0afe76;pid=616;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ export XDG_RUNTIME_DIR=/run/user/1000; for i in $(seq 90); do pgrep -x es-de >/dev/null && break; sleep 2; done; echo "ESDE=$(pgrep -x es-de)"; stat -c 'TTY1-OWNER=%U:%G %a' /dev/tty1; echo "GROUPS=$(id -nG)"; printf 'VT-PROBE\n' > /dev/tty1; echo "WRITE-RC=$?"; journalctl --user -b -u emunix-session --no-pager | grep -c 'starting the frontend under gamescope' | sed 's/^/JOURNAL-SAY-LINES=/'; ls -l /proc/$(pgrep -x es-de)/fd/0 /proc/$(pgrep -x es-de)/fd/1 2>/dev/null | sed 's/^/ESDE-FD /'; echo "PERM-Z" "END"
+[?2004l]3008;start=6c6b034f-8c68-4e7d-a40a-933d95e1211a;type=command;machineid=7e3f4534873947eba81ea48d6c646c9b;user=retrogamer;hostname=emunix;bootid=f8852972-04c0-4668-b6a8-b91d7f0afe76;pid=616;cwd=/home/retrogamer\ESDE=636
+TTY1-OWNER=retrogamer:tty 600
+GROUPS=retrogamer input wheel
+WRITE-RC=0
+JOURNAL-SAY-LINES=1
+ESDE-FD lr-x------ 1 retrogamer retrogamer 64 Nov 18 14:46 /proc/636/fd/0 -> /dev/null
+ESDE-FD lrwx------ 1 retrogamer retrogamer 64 Nov 18 14:46 /proc/636/fd/1 -> socket:[10452]
+PERM-Z END
+]3008;end=6c6b034f-8c68-4e7d-a40a-933d95e1211a;exit=success\]3008;start=0fb4ad27-9ccf-4f6a-b275-9f4b2e392f61;type=shell;machineid=7e3f4534873947eba81ea48d6c646c9b;user=retrogamer;hostname=emunix;bootid=f8852972-04c0-4668-b6a8-b91d7f0afe76;pid=616;cwd=/home/retrogamer\[?2004h[retrogamer@emunix ~]$ qemu-system-x86_64: terminating on signal 15 from pid 15525 (<unknown process>)
+send: spawn id exp4 not open
+    while executing
+"send {echo retrogamer | sudo -S systemctl poweroff; exit}"
