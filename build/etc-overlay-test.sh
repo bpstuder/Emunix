@@ -38,7 +38,7 @@ USERPW=cycle1pw
 cleanup() {
   pkill -f "[q]emu-system-x86_64" 2>/dev/null || true
   umount -R "$WORK" 2>/dev/null || true
-  # Detach only this image's loop device: a leftover one keeps the 24 GiB copy alive.
+  # Detach only this image's loop device: a leftover one keeps the 13.5 GiB copy alive.
   for l in $(losetup -j "$DISK" -O NAME --noheadings 2>/dev/null); do
     losetup -d "$l" 2>/dev/null || true
   done

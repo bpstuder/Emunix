@@ -1,7 +1,12 @@
 # Base package set (all targets)
 base
 linux
-linux-firmware
+# Firmware: the split packages this hardware has, not the linux-firmware meta. The meta adds Intel
+# (142 MiB), NVIDIA (104 MiB) and Qualcomm Atheros (53 MiB) firmware for devices that cannot exist
+# on an AMD APU handheld; amdgpu and mediatek are the GPU and the Wi-Fi/Bluetooth.
+linux-firmware-amdgpu        # Radeon GPU (Phoenix APU)
+linux-firmware-mediatek      # MT7922 Wi-Fi + Bluetooth
+linux-firmware-amd           # AMD platform: PSP/TEE, NPU
 mkinitcpio
 systemd
 btrfs-progs
@@ -16,7 +21,6 @@ bluez
 bluez-utils
 mesa
 vulkan-radeon
-vulkan-intel
 libva
 vulkan-tools
 gamemode

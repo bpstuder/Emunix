@@ -119,7 +119,7 @@ else
 fi
 
 # The release artifact is a full GPT disk image; the slot needs only its rootfs_a partition. Stream
-# that partition into the slot so the 24 GiB raw image never touches /var (2 GiB): the manifest
+# that partition into the slot so the 13.5 GiB raw image never touches /var (2 GiB): the manifest
 # pins the compressed bytes, and zstd reads exactly those bytes. A non-.zst artifact is a bare
 # rootfs image and is written whole.
 esp_img=

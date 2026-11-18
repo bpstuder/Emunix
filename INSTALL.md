@@ -20,6 +20,9 @@ Each release carries four files:
 
 You need `zstd`, `sha256sum` and (to check the signature) `minisign`.
 
+**Media: at least 16 GB.** The image is 13.5 GiB and a 16 GB stick has 15.02 GiB usable; the last
+partition grows to fill the whole device on first boot.
+
 1. Download the four files from the release page.
 2. **Verify the checksum before you write anything.** In the directory with the downloaded files:
    ```sh
@@ -35,24 +38,27 @@ You need `zstd`, `sha256sum` and (to check the signature) `minisign`.
    ```
    It must print `Signature and comment signature verified`. The manifest's `sha256` and `size`
    pin the image bytes; the signature pins the manifest.
-4. Decompress:
-   ```sh
-   zstd -d emunix-<version>-x86_64.img.zst
-   ```
-5. **Identify the target device.** `lsblk` shows size, type and model, so you can tell the card
+4. **Identify the target device.** `lsblk` shows size, type and model, so you can tell the card
    or SSD apart from the drive you are booted from:
    ```sh
    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL
    ```
    Unmount anything mounted on it (`sudo umount /dev/sdX*`), and use the whole disk —
    `/dev/sdX` for a USB/SD disk, `/dev/nvme0n1` for an internal NVMe — never a partition.
-6. Flash it, and let `dd` flush before it returns:
+5. Flash it straight from the compressed file (no 13.5 GiB scratch copy) and let `dd` flush before
+   it returns:
    ```sh
-   sudo dd if=emunix-<version>-x86_64.img of=/dev/sdX bs=4M status=progress conv=fsync
+   set -o pipefail
+   zstd -dc emunix-<version>-x86_64.img.zst | sudo dd of=/dev/sdX bs=4M status=progress conv=fsync
    ```
-   `conv=fsync` waits for the write to reach the device; without it a fast `dd` can return while
-   the last blocks are still in cache, and the device then fails to boot.
-7. Boot the device from the disk (UEFI). The bootloader defaults to slot `a`.
+   - `set -o pipefail` is part of the command, not a nicety: without it a pipeline's status is
+     `dd`'s alone, so a `zstd` that dies on a truncated or corrupt artifact still ends the pipeline
+     with status 0, and the stick carries a partial image that boots to a black screen.
+   - A write that does not fit prints `dd: error writing '/dev/sdX': No space left on device` and
+     exits non-zero. That is not a flashed stick; use media of at least 16 GB.
+   - `conv=fsync` waits for the write to reach the device; without it a fast `dd` can return while
+     the last blocks are still in cache, and the device then fails to boot.
+6. Boot the device from the disk (UEFI). The bootloader defaults to slot `a`.
 
 ## First boot
 

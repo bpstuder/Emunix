@@ -137,8 +137,10 @@ sudo ./build/health-test.sh out/emunix-*-x86_64.img  # two failed boots roll bac
 #   sudo ./build/pads-test.sh out/emunix-*-x86_64.img /dev/input/event12
 ```
 
-The image tests need a privileged container (loop mounts, QEMU). Output lands in `out/` (a 24 GiB
-GPT disk image, sparse on disk; override with `TOTAL_SIZE`).
+The image tests need a privileged container (loop mounts, QEMU). Output lands in `out/` (a 13.5 GiB
+GPT disk image, sparse on disk; override with `TOTAL_SIZE`). The release target is a **16 GB USB
+stick** (15.02 GiB usable), so `build/verify-image.sh` fails the build if the image exceeds 14 GiB or
+if the partition sizes drift from `configs/partition-layout.md`.
 
 ## The `[emunix]` repository
 

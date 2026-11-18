@@ -17,19 +17,22 @@ VERSION="${VERSION:-$(date -u +%Y.%m.0)}" # <year>.<month>.<patch>; a release ta
 SOURCE_DATE_EPOCH="${SOURCE_DATE_EPOCH:-$(date -u -d "$ARCH_SNAPSHOT" +%s 2>/dev/null || date -u +%s)}"
 WORK="${WORK:-$REPO/work}"
 OUT="${OUT:-$REPO/out}"
-TOTAL_SIZE="${TOTAL_SIZE:-24G}"
+# 13.5 GiB (truncate has no fractional suffix): the declared layout must fit a 16 GB USB stick,
+# which has 15.02 GiB usable. verify-image.sh fails a build that grows past 14 GiB.
+TOTAL_SIZE="${TOTAL_SIZE:-13824M}"
 export SOURCE_DATE_EPOCH
 
 mkdir -p "$WORK" "$OUT"
 IMG="$OUT/emunix-$VERSION-x86_64.img"
 rm -f "$IMG" "$IMG.sha256"
 
-# 1. GPT per configs/partition-layout.md.
+# 1. GPT per configs/partition-layout.md. verify-image.sh asserts these sizes: a 16 GB stick is the
+# release target, and rootfs slots may not grow between releases (update/README.md).
 truncate -s "$TOTAL_SIZE" "$IMG"
 sgdisk --clear \
-  --new=1:0:+1G --typecode=1:EF00 --change-name=1:esp \
-  --new=2:0:+8G --typecode=2:8300 --change-name=2:rootfs_a \
-  --new=3:0:+8G --typecode=3:8300 --change-name=3:rootfs_b \
+  --new=1:0:+512M --typecode=1:EF00 --change-name=1:esp \
+  --new=2:0:+5G --typecode=2:8300 --change-name=2:rootfs_a \
+  --new=3:0:+5G --typecode=3:8300 --change-name=3:rootfs_b \
   --new=4:0:+2G --typecode=4:8300 --change-name=4:var \
   --new=5:0:0   --typecode=5:8300 --change-name=5:home \
   "$IMG" >/dev/null
@@ -248,9 +251,10 @@ fi
   { echo "no /usr/bin/es-de: emulationstation-de was not installed from [emunix]" >&2; exit 1; }
 
 # virtio_blk so the image boots under QEMU; no autodetect, the image is not the build host.
-# amdgpu keeps early KMS on the handhelds without the kms hook, which drags every GPU driver's
-# firmware (190 MB, mostly NVIDIA GSP blobs) into the ESP. This conf is hand-written, not Arch's
-# default, so it pins COMPRESSION rather than leaning on mkinitcpio's own zstd default.
+# amdgpu keeps early KMS on the handhelds without the kms hook; it also pulls the amdgpu firmware
+# (linux-firmware-amdgpu, profiles/base.txt) into the initramfs, so the ESP carries the kernel and
+# that firmware. This conf is hand-written, not Arch's default, so it pins COMPRESSION rather than
+# leaning on mkinitcpio's own zstd default.
 printf 'MODULES=(virtio_blk virtio_pci amdgpu)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf keyboard keymap consolefont block filesystems fsck)\nCOMPRESSION="zstd"\nCOMPRESSION_OPTIONS=(-T0 -19)\n' >/etc/mkinitcpio.conf
 mkinitcpio -P >/dev/null
 

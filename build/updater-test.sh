@@ -6,7 +6,7 @@
 #
 # The v2 artifact is the real release artifact: the full GPT disk image with only the version
 # bumped, compressed to .img.zst. The updater streams its rootfs_a partition into the slot, so the
-# 24 GiB raw image never touches the 2 GiB /var cache.
+# 13.5 GiB raw image never touches the 2 GiB /var cache.
 #
 # Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect, socat, gptfdisk, e2fsprogs,
 # openssl, python3, minisign, zstd. Usage: updater-test.sh <emunix.img> [evidence-dir]

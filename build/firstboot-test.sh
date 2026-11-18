@@ -3,7 +3,7 @@
 # device, /storage gets its ROM tree owned by retrogamer, the shipped password is left alone (and
 # `passwd` is what changes it), and a second boot does not run the unit again.
 #
-# The image copy is enlarged by GROW_SIZE before the first boot: that is what flashing a 24 GiB
+# The image copy is enlarged by GROW_SIZE before the first boot: that is what flashing a 13.5 GiB
 # image onto a bigger device looks like. Requires root (loop mount), qemu-system-x86, edk2-ovmf,
 # expect, socat, gptfdisk. Usage: firstboot-test.sh <emunix.img> [evidence-dir]
 set -euo pipefail

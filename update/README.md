@@ -127,11 +127,16 @@ Only the slot's image is replaced; what the device wrote at runtime is not part 
 device and survives every update, and `/var` and `/home` are separate partitions that are not
 touched at all.
 
-The artifact is a full GPT disk image (~24 GiB raw, ~1.3 GiB compressed), so the updater never
-decompresses it to a file: `/var` (2 GiB) only ever holds the compressed artifact. The GPT is read
+The artifact is a full GPT disk image (~13.5 GiB raw, compressed), so the updater never decompresses
+it to a file: `/var` (2 GiB) only ever holds the compressed artifact. The GPT is read
 from a 2 MiB probe at the start of the artifact; the manifest's sha256/size pin the artifact, so
 the partition boundaries are authenticated by the same signature. The ESP partition is streamed to
 a sparse file (`mcopy` reads the two files out of it), so only the files' clusters cost space.
+
+**Slots may only stay equal or shrink between releases, never grow.** The updater writes the
+artifact's `rootfs_a` into the inactive slot whatever its size: a device with 5 GiB slots accepts a
+5 GiB or smaller artifact, but an 8 GiB artifact would run past the end of the partition. A release
+with bigger slots than the device therefore needs a reflash, not an update; the reverse is safe.
 
 The ESP is shared by both slots, so the kernel and initramfs must follow the rootfs: a rootfs-only
 update would leave the device booting the old kernel while the new rootfs carries

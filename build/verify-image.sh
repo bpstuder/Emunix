@@ -28,6 +28,19 @@ for spec in 1:esp 2:rootfs_a 3:rootfs_b 4:var 5:home; do
     fail "partition ${spec%%:*} is not labelled ${spec#*:}"
 done
 
+# 1b. Media budget: a release must fit a 16 GB USB stick (15.02 GiB usable) and the layout must not
+# grow back. Sizes are asserted in sectors because sgdisk aligns the partition start: 512 MiB is
+# 1048576 sectors, 5 GiB is 10485760. var stays 2 GiB (the updater's cache), home is the rest and
+# firstboot grows it to the device end.
+[ "$(stat -c %s "$IMG")" -le $((14 * 1024 * 1024 * 1024)) ] ||
+  fail "$IMG is $(stat -c %s "$IMG") bytes, over 14 GiB: it may not fit a 16 GB stick"
+for spec in 1:esp:1048576 2:rootfs_a:10485760 3:rootfs_b:10485760; do
+  idx=${spec%%:*}; rest=${spec#*:}; name=${rest%%:*}; want=${rest#*:}
+  got=$(sgdisk --info="$idx" "$IMG" | sed -n 's/.*Partition size: \([0-9]*\) sectors.*/\1/p')
+  [ "$got" = "$want" ] ||
+    fail "partition $idx ($name) is $got sectors, not $want (esp 512 MiB, slots 5 GiB: configs/partition-layout.md)"
+done
+
 # 2. ESP: bootloader, entries, kernel, initramfs.
 mount -o ro "${LOOP}p1" "$MNT"
 for f in EFI/systemd/systemd-bootx64.efi loader/loader.conf vmlinuz-linux initramfs-linux.img \
@@ -91,6 +104,14 @@ for f in etc/fstab etc/machine-id etc/emunix-version etc/hostname usr/bin/retroa
   usr/bin/ryzenadj; do
   # -L too: the enabled unit is a symlink to an absolute path in the image, not in this host.
   [ -e "$MNT/$f" ] || [ -L "$MNT/$f" ] || fail "/$f missing from rootfs_a"
+done
+# The firmware trim (profiles/base.txt) drops the intel/nvidia/atheros splits, so assert the parts
+# this hardware does have survived: no image test can see a missing GPU blob, because QEMU has no
+# amdgpu, and the first symptom would be a black screen on the handheld.
+for f in usr/lib/firmware/amdgpu/psp_13_0_11_ta.bin.zst \
+  usr/lib/firmware/mediatek/WIFI_RAM_CODE_MT7922_1.bin.zst \
+  usr/lib/firmware/mediatek/BT_RAM_CODE_MT7922_1_1_hdr.bin.zst; do
+  [ -e "$MNT/$f" ] || fail "/$f missing: the firmware trim dropped a device the handhelds need"
 done
 grep -q -- '--autologin retrogamer' "$MNT/etc/systemd/system/getty@tty1.service.d/autologin.conf" ||
   fail "tty1 autologin is not configured for retrogamer"
