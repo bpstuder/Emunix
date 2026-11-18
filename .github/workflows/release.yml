@@ -89,7 +89,9 @@ jobs:
       - name: Changelog and release notes
         run: |
           {
-            printf '## Emunix %s\n\n' "$TAG"
+            printf '## Emunix %s (beta)\n\n' "$TAG"
+            printf '> **Beta.** No release has been validated on real hardware yet. The image is signed and\n'
+            printf '> reproducible, but it may not boot. Flash at will; expect to reflash.\n\n'
             printf 'Flashing and first boot: <https://github.com/%s/blob/%s/INSTALL.md#installing-a-release-image>\n\n' \
               "$GITHUB_REPOSITORY" "$TAG"
             printf '### Changes since the previous release\n\n'
@@ -103,13 +105,18 @@ jobs:
           } >out/release-notes.md
           cat out/release-notes.md
 
+      # --prerelease keeps the release out of GitHub's "latest" pointer until the hardware bring-up
+      # passes. Consequence to know: releases/latest/download/... resolves to nothing while every
+      # release is a prerelease, so a device's default EMUNIX_REPO_URL finds no manifest. Harmless
+      # while images are flashed by hand; publish a non-prerelease when the first device boots.
       - name: Publish the GitHub Release
         run: |
           gh release create "$TAG" \
             "out/emunix-$TAG-x86_64.img.zst" \
             "out/emunix-$TAG-x86_64.img.zst.sha256" \
             out/emunix.json out/emunix.json.minisig \
-            --title "Emunix $TAG" \
+            --title "Emunix $TAG (beta)" \
+            --prerelease \
             --notes-file out/release-notes.md
 
       # The exit criterion, run by CI: a fresh clone downloads the published assets and the
