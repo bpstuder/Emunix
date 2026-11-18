@@ -34,6 +34,19 @@ for f in EFI/systemd/systemd-bootx64.efi loader/loader.conf vmlinuz-linux initra
   loader/entries/emunix-a.conf loader/entries/emunix-b.conf; do
   [ -f "$MNT/$f" ] || fail "/$f missing from the ESP"
 done
+# mkinitcpio.conf is written by hand in build-image.sh: without its COMPRESSION line the main
+# archive ships uncompressed. mkinitcpio puts pre-compressed files (.ko.zst, firmware) in an
+# uncompressed early cpio and appends the compressed main archive, so the zstd frame starts after
+# the first cpio trailer, not at byte 0.
+INITRAMFS=$MNT/initramfs-linux.img
+[ "$(stat -c %s "$INITRAMFS")" -lt $((120 * 1024 * 1024)) ] ||
+  fail "/initramfs-linux.img is $(stat -c %s "$INITRAMFS") bytes: the ESP cannot hold a kernel and several generations"
+cpio_end=$(grep -abo 'TRAILER!!!' "$INITRAMFS" | sed -n '1s/:.*//p')
+[ -n "$cpio_end" ] || fail "/initramfs-linux.img has no cpio trailer: not an initramfs image"
+# Skip the zero padding after the early cpio and require the zstd magic (28 b5 2f fd) there.
+magic=$(od -An -v -tx1 -j "$((cpio_end + 10))" -N 16384 "$INITRAMFS" | tr -d ' \n' | sed 's/^\(00\)*//' | cut -c1-8)
+[ "$magic" = 28b52ffd ] ||
+  fail "/initramfs-linux.img's main archive is not zstd-compressed (found $magic after the early cpio)"
 grep -q '^default emunix-a\.conf$' "$MNT/loader/loader.conf" || fail "loader.conf does not default to emunix-a.conf"
 for slot in a b; do
   grep -q "root=PARTLABEL=rootfs_$slot ro" "$MNT/loader/entries/emunix-$slot.conf" ||

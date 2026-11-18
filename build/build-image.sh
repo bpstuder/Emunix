@@ -248,7 +248,10 @@ fi
   { echo "no /usr/bin/es-de: emulationstation-de was not installed from [emunix]" >&2; exit 1; }
 
 # virtio_blk so the image boots under QEMU; no autodetect, the image is not the build host.
-printf 'MODULES=(virtio_blk virtio_pci)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf kms keyboard keymap consolefont block filesystems fsck)\n' >/etc/mkinitcpio.conf
+# amdgpu keeps early KMS on the handhelds without the kms hook, which drags every GPU's firmware
+# (165 MB, mostly NVIDIA) into the ESP. Arch's default conf compresses; this hand-written one must
+# say so or mkinitcpio ships an uncompressed main archive.
+printf 'MODULES=(virtio_blk virtio_pci amdgpu)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf keyboard keymap consolefont block filesystems fsck)\nCOMPRESSION="zstd"\nCOMPRESSION_OPTIONS=(-T0 -19)\n' >/etc/mkinitcpio.conf
 mkinitcpio -P >/dev/null
 
 bootctl --esp-path=/boot install >/dev/null
