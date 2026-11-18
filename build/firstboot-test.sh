@@ -7,6 +7,12 @@
 # image onto a bigger device looks like. Requires root (loop mount), qemu-system-x86, edk2-ovmf,
 # expect, socat, gptfdisk. Usage: firstboot-test.sh <emunix.img> [evidence-dir]
 set -euo pipefail
+SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-qemu.sh
+. "$SCRIPT_DIR/lib-qemu.sh"
+require_qemu_allowed
+
 IMG=${1:?usage: firstboot-test.sh <emunix.img> [evidence-dir]}
 OUT=${2:-$(dirname "$0")/../evidence}
 GROW_SIZE=${GROW_SIZE:-8G}

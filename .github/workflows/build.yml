@@ -23,39 +23,44 @@ jobs:
                      bash build/verify-image.sh out/emunix-*-x86_64.img"
       - name: Boot image under QEMU
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Sy --noconfirm --needed qemu-system-x86 edk2-ovmf expect >/dev/null &&
                      bash build/boot-test.sh out/emunix-*-x86_64.img evidence/m0-boot.log"
       - name: Session test (ES-DE on a virtual GPU)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
                      bash build/session-test.sh out/emunix-*-x86_64.img evidence"
       - name: First boot test (disk growth, /storage, shipped password)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
                      bash build/firstboot-test.sh out/emunix-*-x86_64.img evidence"
       - name: Etc overlay test (writable /etc, survives reboot, slot switch)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat e2fsprogs >/dev/null &&
                      bash build/etc-overlay-test.sh out/emunix-*-x86_64.img evidence"
       - name: Slot test (next/once, the kernel cmdline follows the slot)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat e2fsprogs gptfdisk >/dev/null &&
                      bash build/slot-test.sh out/emunix-*-x86_64.img evidence"
       - name: Updater test (signed v1 -> v2, then a corrupt image aborts)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs dosfstools openssl python minisign arch-install-scripts >/dev/null &&
                      bash build/updater-test.sh out/emunix-*-x86_64.img evidence"
       - name: Health test (two failed boots roll back, a normal boot does not)
         run: |
-          docker run --privileged -v "$PWD:/work" -w /work archlinux:latest \
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
             bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk e2fsprogs >/dev/null &&
                      bash build/health-test.sh out/emunix-*-x86_64.img evidence"
+      - name: Install test (stick -> empty disk, then boot the target alone)
+        run: |
+          docker run --privileged -e EMUNIX_ALLOW_QEMU=1 -v "$PWD:/work" -w /work archlinux:latest \
+            bash -c "pacman -Syu --noconfirm --needed qemu-system-x86 edk2-ovmf expect socat gptfdisk util-linux >/dev/null &&
+                     bash build/install-test.sh out/emunix-*-x86_64.img evidence"
       - name: Upload session evidence
         if: always()
         uses: actions/upload-artifact@v7
@@ -69,6 +74,7 @@ jobs:
             evidence/m1-slot.log
             evidence/m2-updater.log
             evidence/m2-health.log
+            evidence/m4-install.log
       - name: Upload checksum
         # The disk image is >10 GiB; release packaging (compressed .img.zst) is M4.
         uses: actions/upload-artifact@v7

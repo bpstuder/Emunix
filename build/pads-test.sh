@@ -11,6 +11,11 @@
 # Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect.
 # Usage: pads-test.sh <emunix.img> <host-evdev> [evidence-dir]
 set -euo pipefail
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-qemu.sh
+. "$SCRIPT_DIR/lib-qemu.sh"
+require_qemu_allowed
+
 IMG=${1:?usage: pads-test.sh <emunix.img> <host-evdev> [evidence-dir]}
 EVDEV=${2:?host evdev path, e.g. /dev/input/event12}
 OUT=${3:-$(dirname "$0")/../evidence}

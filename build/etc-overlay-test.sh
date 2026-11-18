@@ -12,6 +12,11 @@
 # Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect, socat, gptfdisk, e2fsprogs.
 # Usage: etc-overlay-test.sh <emunix.img> [evidence-dir]
 set -euo pipefail
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-qemu.sh
+. "$SCRIPT_DIR/lib-qemu.sh"
+require_qemu_allowed
+
 IMG=${1:?usage: etc-overlay-test.sh <emunix.img> [evidence-dir]}
 OUT=${2:-$(dirname "$0")/../evidence}
 [ -f "$IMG" ] || { echo "no image $IMG" >&2; exit 1; }

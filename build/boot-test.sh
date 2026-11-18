@@ -3,6 +3,11 @@
 # Requires root (loop mount), qemu-system-x86, edk2-ovmf, expect.
 # Usage: boot-test.sh <emunix.img> [log]
 set -euo pipefail
+# shellcheck source-path=SCRIPTDIR
+# shellcheck source=lib-qemu.sh
+. "$SCRIPT_DIR/lib-qemu.sh"
+require_qemu_allowed
+
 IMG=${1:?usage: boot-test.sh <emunix.img> [log]}
 LOG=${2:-$(dirname "$0")/../evidence/m0-boot.log}
 OVMF=/usr/share/edk2/x64

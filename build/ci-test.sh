@@ -14,19 +14,24 @@ shellcheck -x build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session 
   configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
   configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
   configs/rootfs/usr/local/bin/emunix-pad-order configs/rootfs/usr/local/bin/emunix-tdp \
+  configs/rootfs/usr/local/bin/emunix-install \
   configs/rootfs/usr/share/emunix/power-profiles/quiet.sh \
   configs/rootfs/usr/share/emunix/power-profiles/balanced.sh \
   configs/rootfs/usr/share/emunix/power-profiles/performance.sh \
+  configs/rootfs/usr/share/emunix/install/*.sh \
   configs/rootfs/etc/skel/.bash_profile
 bash -n build/*.sh tests/*.sh configs/rootfs/usr/local/bin/emunix-session \
   configs/rootfs/usr/local/bin/emunix-firstboot configs/rootfs/usr/local/bin/emunix-etc-overlay \
   configs/rootfs/usr/local/bin/emunix-slot configs/rootfs/usr/local/bin/emunix-health \
   configs/rootfs/usr/local/bin/emunix-pad-order configs/rootfs/usr/local/bin/emunix-tdp \
+  configs/rootfs/usr/local/bin/emunix-install \
   configs/rootfs/usr/share/emunix/power-profiles/*.sh \
+  configs/rootfs/usr/share/emunix/install/*.sh \
   configs/rootfs/etc/skel/.bash_profile
 
 bash tests/test-os-updater.sh
 bash tests/test-firstboot.sh
+bash tests/test-emunix-install.sh
 bash tests/test-etc-overlay.sh
 bash tests/test-emunix-slot.sh
 bash tests/test-emunix-health.sh
