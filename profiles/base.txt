@@ -1,6 +1,7 @@
 # Base package set (all targets)
 base
 linux
+amd-ucode                    # CPU microcode: loaded early, from the initramfs (mkinitcpio hook)
 # Firmware: the split packages this hardware has, not the linux-firmware meta. The meta adds Intel
 # (142 MiB), NVIDIA (104 MiB) and Qualcomm Atheros (53 MiB) firmware for devices that cannot exist
 # on an AMD APU handheld; amdgpu and mediatek are the GPU and the Wi-Fi/Bluetooth.

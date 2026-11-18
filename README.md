@@ -10,6 +10,8 @@ The image ships the public password `retrogamer`/`retrogamer` and nothing forces
 `passwd` before you take the device anywhere you do not control. There is no `sshd`, so it guards
 the console and `sudo`, not a network service.
 
+The image carries AMD CPU microcode (`amd-ucode`), applied early from the initramfs on every boot.
+
 
 ## Layout
 

@@ -62,7 +62,23 @@ magic=$(od -An -v -tx1 -j "$((cpio_end + 10))" -N 16384 "$INITRAMFS" | tr -d ' \
 [ "$magic" = 28b52ffd ] ||
   fail "/initramfs-linux.img's main archive is not zstd-compressed (found $magic after the early cpio)"
 grep -q '^default emunix-a\.conf$' "$MNT/loader/loader.conf" || fail "loader.conf does not default to emunix-a.conf"
+# CPU microcode must be in what the entries actually load. mkinitcpio's microcode hook writes the
+# concatenated amd-ucode blobs into the uncompressed early cpio that leads this initramfs, so the
+# kernel finds them before it unpacks anything. (The package's own /boot/amd-ucode.img is a legacy
+# copy nothing references; mkinitcpio writes no separate image.) An image without the blob boots
+# without the errata and Spectre fixes, and nothing on the device reports that.
+ucode_off=$(grep -abo 'kernel/x86/microcode/AuthenticAMD.bin' "$INITRAMFS" | sed -n '1s/:.*//p' || true)
+[ -n "$ucode_off" ] ||
+  fail "/initramfs-linux.img has no kernel/x86/microcode/AuthenticAMD.bin: the image ships no CPU microcode"
+[ "$ucode_off" -lt "$cpio_end" ] ||
+  fail "AuthenticAMD.bin sits past the early cpio trailer: the kernel would not load it early"
+# The name is preceded by the newc header, whose 7th 8-hex-digit field is the file size.
+ucode_size=$(od -An -v -c -j "$((ucode_off - 110 + 54))" -N 8 "$INITRAMFS" | tr -d ' \n')
+[ "$((16#$ucode_size))" -gt 100000 ] ||
+  fail "the early AuthenticAMD.bin is $((16#$ucode_size)) bytes: not an amd-ucode blob"
 for slot in a b; do
+  grep -qx 'initrd  /initramfs-linux.img' "$MNT/loader/entries/emunix-$slot.conf" ||
+    fail "emunix-$slot.conf does not load /initramfs-linux.img, the file the microcode check covers"
   grep -q "root=PARTLABEL=rootfs_$slot ro" "$MNT/loader/entries/emunix-$slot.conf" ||
     fail "emunix-$slot.conf does not boot rootfs_$slot read-only"
 done

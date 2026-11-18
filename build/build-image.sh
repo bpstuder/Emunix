@@ -255,7 +255,12 @@ fi
 # (linux-firmware-amdgpu, profiles/base.txt) into the initramfs, so the ESP carries the kernel and
 # that firmware. This conf is hand-written, not Arch's default, so it pins COMPRESSION rather than
 # leaning on mkinitcpio's own zstd default.
-printf 'MODULES=(virtio_blk virtio_pci amdgpu)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf keyboard keymap consolefont block filesystems fsck)\nCOMPRESSION="zstd"\nCOMPRESSION_OPTIONS=(-T0 -19)\n' >/etc/mkinitcpio.conf
+# microcode (amd-ucode): the hook concatenates the package's blobs into the uncompressed early cpio
+# of the initramfs, which is where the kernel looks before it unpacks anything. The package's own
+# /boot/amd-ucode.img is a legacy image nothing references, so the loader entries carry one initrd
+# and the updater needs no third file. Without autodetect the hook adds every AMD family in the
+# package, not just the build host's.
+printf 'MODULES=(virtio_blk virtio_pci amdgpu)\nBINARIES=()\nFILES=()\nHOOKS=(base udev modconf keyboard keymap consolefont microcode block filesystems fsck)\nCOMPRESSION="zstd"\nCOMPRESSION_OPTIONS=(-T0 -19)\n' >/etc/mkinitcpio.conf
 mkinitcpio -P >/dev/null
 
 bootctl --esp-path=/boot install >/dev/null
