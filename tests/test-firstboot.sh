@@ -20,7 +20,7 @@ stub() { # <name> [exit status]
 # findmnt names the device of the /storage mount (btrfs reports the subvolume too); the sandbox has
 # no mounts, and lsblk derives the disk and partition number growpart needs.
 printf '#!/bin/sh\necho "/dev/vda5[/storage]"\n' >"$TMP/findmnt"; chmod +x "$TMP/findmnt"
-printf '#!/bin/sh\ncase "$*" in *pkname*) echo vda ;; *partn*) echo 5 ;; esac\n' >"$TMP/lsblk"
+printf '#!/bin/sh\ncase "$*" in *pkname*) echo vda ;; *partn*) echo 5 ;; *SIZE*) echo 29.8G ;; esac\n' >"$TMP/lsblk"
 chmod +x "$TMP/lsblk"
 stub growpart 0
 stub btrfs 0
@@ -46,7 +46,9 @@ sandbox() { # <growpart status> -> fresh sandbox root, prints its path
 }
 
 run() { # <root> [stdin file] -> runs firstboot against the sandbox
-  EMUNIX_FIRSTBOOT_PREFIX=$1 PATH="$TMP:$PATH" "$FIRSTBOOT" <"${2:-/dev/null}" >>"$TMP/out" 2>&1
+  : >"$TMP/tty1"
+  EMUNIX_FIRSTBOOT_TTY=$TMP/tty1 EMUNIX_FIRSTBOOT_PREFIX=$1 PATH="$TMP:$PATH" "$FIRSTBOOT" \
+    <"${2:-/dev/null}" >>"$TMP/out" 2>&1
 }
 
 # 1. A full first boot: the disk grows, /storage is seeded and handed over, the marker is last.
@@ -65,6 +67,14 @@ grep -qx 'growpart /dev/vda 5' "$TMP/calls" ||
   fail "growpart was not called with the disk and the partition number"
 if grep -q '^mount ' "$TMP/calls"; then fail "firstboot touched the mounts"; fi
 if grep -q '^chpasswd' "$TMP/calls"; then fail "firstboot changed the shipped password"; fi
+
+# The screen the user stares at: one line per phase, in order, the frontend line last, and the same
+# lines on stdout - which firstboot.service sends to the journal and the console.
+# Written with a shell comparison, not diff: archlinux:latest ships neither diff nor cmp.
+expected=$(printf 'Emunix first boot: growing the disk to 29.8G...\nEmunix first boot: seeding /storage...\nEmunix first boot: done, starting the frontend')
+[ "$(cat "$TMP/tty1")" = "$expected" ] || fail "the phase lines on tty1 are missing or out of order"
+grep -qxF 'Emunix first boot: seeding /storage...' "$TMP/out" ||
+  fail "the phase lines never reached stdout (journal+console)"
 
 # 2. Already full device: growpart's NOCHANGE is not a failure.
 ROOT=$(sandbox 1)

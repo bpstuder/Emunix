@@ -15,10 +15,12 @@ stub() { # <name> <exit status> -> a command that records the call and exits wit
 
 run() { # <gamescope status> <es-de status> -> prints exit status, leaves calls in $TMP/calls
   : >"$TMP/calls"
+  : >"$TMP/tty1"
   stub gamescope "$1"
   stub es-de "$2"
   set +e
-  HOME=$TMP PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" "$SESSION" >"$TMP/out" 2>&1
+  EMUNIX_SESSION_TTY=$TMP/tty1 HOME=$TMP PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" \
+    "$SESSION" >"$TMP/out" 2>&1
   echo $?
   set -e
 }
@@ -29,19 +31,26 @@ fail() { echo "FAIL: $*" >&2; exit 1; }
 # no second, un-wrapped launch.
 [ "$(run 0 0)" = 0 ] || fail "clean session did not exit 0"
 [ "$(tr '\n' ' ' <"$TMP/calls")" = "gamescope " ] || fail "clean session relaunched ES-DE outside gamescope"
+# The one line a black screen must still have said, on the VT as well as in the journal.
+# A shell comparison, not diff: archlinux:latest ships neither diff nor cmp.
+[ "$(cat "$TMP/tty1")" = 'emunix-session: starting the frontend under gamescope' ] ||
+  fail "the VT did not get the line before gamescope starts"
 
 # gamescope cannot start: ES-DE still runs, directly.
 [ "$(run 1 0)" = 0 ] || fail "no-gamescope session did not exit 0"
 [ "$(tr '\n' ' ' <"$TMP/calls")" = "gamescope es-de " ] ||
   fail "gamescope failure did not fall back to ES-DE"
 grep -q 'gamescope exited 1' "$TMP/out" || fail "the fallback is not explained in the log"
+expected=$(printf 'emunix-session: starting the frontend under gamescope\nemunix-session: gamescope exited 1, starting es-de directly')
+[ "$(cat "$TMP/tty1")" = "$expected" ] || fail "the VT did not get the fallback line"
 
 # ES-DE itself fails: the status reaches the login shell, which prints the journal hint.
 [ "$(run 1 3)" = 3 ] || fail "a failed ES-DE did not return its status"
 
 # The seed is copied once so later user edits survive image updates.
 mkdir -p "$TMP/home"
-HOME=$TMP/home PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" "$SESSION" >/dev/null 2>&1 || true
+HOME=$TMP/home EMUNIX_SESSION_TTY=$TMP/tty1 PATH="$TMP:$HERE/../configs/rootfs/usr/local/bin:$PATH" \
+  "$SESSION" >/dev/null 2>&1 || true
 [ -f "$TMP/home/ES-DE/custom_systems/es_systems.xml" ] || [ -f "$TMP/home/ES-DE/settings/es_settings.xml" ] ||
   echo "note: no /etc/emulationstation seed on this host, copy step skipped"
 

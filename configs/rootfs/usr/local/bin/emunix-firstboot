@@ -19,6 +19,18 @@ SYSTEMS=$PREFIX/etc/emulationstation/es_systems.xml
 log() { printf 'emunix-firstboot: %s\n' "$*"; }
 fail() { log "$*"; exit 1; }
 
+# Who is doing what, on the handheld's screen and in the journal. /dev/tty1 is the VT; stdout is the
+# journal, which firstboot.service also copies to the console - and the kernel cmdline ends in
+# console=ttyS0, so /dev/console is the serial port and a stdout line never lights the VT.
+# shortcut: best effort, no retry, no redraw. If the DRM driver dies and takes the framebuffer with
+# it, nothing written to tty1 is visible; that is the GPU's failure (t_186b10eb) and no console
+# output can draw around it.
+progress() {
+  local line="Emunix first boot: $*"
+  printf '%s\n' "$line"
+  printf '%s\n' "$line" >>"${EMUNIX_FIRSTBOOT_TTY:-/dev/tty1}" 2>/dev/null || true
+}
+
 # 1. The image is built at a fixed size and flashed onto something bigger: extend the last
 # partition (home, which carries /storage) to the end of the device and hand the space to btrfs.
 grow_disk() {
@@ -31,6 +43,7 @@ grow_disk() {
   if [ -z "$disk" ] || [ -z "$num" ]; then
     fail "cannot work out the disk behind $part"
   fi
+  progress "growing the disk to $(lsblk -no SIZE "/dev/$disk")..."
   growpart "/dev/$disk" "$num"
   rc=$?
   # growpart: 0 = changed, 1 = NOCHANGE (already fills the device), anything else is an error.
@@ -46,6 +59,7 @@ grow_disk() {
 # and es_systems.xml is the single list of the systems this image ships.
 seed_storage() {
   local sys
+  progress "seeding /storage..."
   mkdir -p "$STORAGE/roms" "$STORAGE/bios" "$STORAGE/saves" "$STORAGE/states" ||
     fail "cannot create the /storage tree"
   while read -r sys; do
@@ -70,3 +84,4 @@ seed_storage
 mkdir -p "$(dirname "$MARKER")" || fail "cannot create $(dirname "$MARKER")"
 : >"$MARKER" || fail "cannot write $MARKER"
 log "first boot complete"
+progress "done, starting the frontend"

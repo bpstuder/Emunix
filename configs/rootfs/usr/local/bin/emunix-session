@@ -18,12 +18,22 @@ if order=$(/usr/local/bin/emunix-pad-order); then
 fi
 
 status=0
-printf 'emunix-session: starting es-de under gamescope\n'
+
+# The same line on the VT and in the user journal: while gamescope starts, the VT is all the user
+# sees, so a black screen there must at least say what was tried.
+# shortcut: best effort. If the DRM driver is dead the VT shows nothing - that is the GPU's failure
+# (t_186b10eb), not something this wrapper can draw around.
+say() {
+  printf 'emunix-session: %s\n' "$*"
+  printf 'emunix-session: %s\n' "$*" >>"${EMUNIX_SESSION_TTY:-/dev/tty1}" 2>/dev/null || true
+}
+
+say "starting the frontend under gamescope"
 gamescope -f -- es-de || status=$?
 if [ "$status" -ne 0 ]; then
   # gamescope needs a compositor-capable GPU; ES-DE's own KMSDRM output only needs KMS + GL.
   # shortcut: one retry without gamescope, no loop; revisit if a device needs gamescope only.
-  printf 'emunix-session: gamescope exited %s, starting es-de directly\n' "$status"
+  say "gamescope exited $status, starting es-de directly"
   status=0
   es-de || status=$?
 fi
