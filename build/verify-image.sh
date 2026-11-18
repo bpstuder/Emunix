@@ -34,10 +34,11 @@ for f in EFI/systemd/systemd-bootx64.efi loader/loader.conf vmlinuz-linux initra
   loader/entries/emunix-a.conf loader/entries/emunix-b.conf; do
   [ -f "$MNT/$f" ] || fail "/$f missing from the ESP"
 done
-# mkinitcpio.conf is written by hand in build-image.sh: without its COMPRESSION line the main
-# archive ships uncompressed. mkinitcpio puts pre-compressed files (.ko.zst, firmware) in an
-# uncompressed early cpio and appends the compressed main archive, so the zstd frame starts after
-# the first cpio trailer, not at byte 0.
+# build-image.sh states COMPRESSION="zstd" in the image's mkinitcpio.conf; assert the shipped
+# archive follows it (a lost line only survives today because mkinitcpio's own default is zstd).
+# mkinitcpio puts pre-compressed files (.ko.zst, firmware) in an uncompressed early cpio and
+# appends the compressed main archive, so the zstd frame starts after the first cpio trailer, not
+# at byte 0.
 INITRAMFS=$MNT/initramfs-linux.img
 [ "$(stat -c %s "$INITRAMFS")" -lt $((120 * 1024 * 1024)) ] ||
   fail "/initramfs-linux.img is $(stat -c %s "$INITRAMFS") bytes: the ESP cannot hold a kernel and several generations"
