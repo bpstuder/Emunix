@@ -71,8 +71,9 @@ The Ally's front/back buttons are on a separate HID interface (`0b05:1abe`; Ally
 
 Firmware-reserved (they never reach Linux): the power button, the short press of the ROG
 button, and the volume keys (the N-Key device reports them as volume down/up; on some units
-both report volume down). Confirm on the device with `sudo evtest`: pick the N-Key device,
-press each button, and the printed keycode is the one in the table.
+both report volume down). Confirm on the device with `sudo showkey -k` on a console VT (`Ctrl+Alt+F2`):
+press each button, and the printed keycode is the one in the table — `F15`–`F18` are keycodes
+`185`–`188`. `evtest` is not installed in the image.
 
 Wiring: ES-DE opens its menu on the `Start` action (Escape on the keyboard by default), so
 `F16` is the natural menu trigger. ES-DE cannot bind a button to a shell command, so
